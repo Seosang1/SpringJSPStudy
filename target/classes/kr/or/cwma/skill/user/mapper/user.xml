@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.skill.user.mapper.UserMapper">
+
+	<!-- 공동인증서 OID 조회 -->
+	<select id="selectOid" parameterType="java.lang.String" resultType="java.util.HashMap">
+		SELECT SE_CD, OID
+		FROM epdbs_link.epdbs.dbo.CWMA_CERT_OID
+		WHERE OID = #{oid}
+	</select>
+
+	<!-- 중복가입조회 -->
+	<select id="selectJoinUser" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.UserInfoVO">
+		SELECT USER_ID, NM, RGST_DT
+		FROM USER_INFO
+		WHERE 1 = 1
+		<if test='ciValue != null and ciValue != ""'>
+			AND CI_VALUE = #{ciValue}
+		</if>
+		<if test='dnValue != null and dnValue != ""'>
+			AND DN_VALUE = #{dnValue}
+		</if>
+	</select>
+	
+	<!-- 사업자정보 조회 -->
+	<select id="selectCorpInfo" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.CorpInfoVO">
+		SELECT 사업자등록번호 BIZNO, 법인번호 CORP_NO, 상호 CORP_NM, 대표자 CEO_NM, 주소 ADRS, 우편번호 ZIP, 전화번호 TEL_NO, 본사담당팩스번호 OFCL_FAX
+		FROM epdbs_link.epdbs.dbo.업체
+		WHERE 사업자등록번호 = #{bizno}
+	</select>
+	
+	<!-- 사업자정보 조회 -->
+	<select id="selectDminsttInfo" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.DminsttInfoVO">
+		SELECT TOP 1
+			사업자등록번호 BIZNO, 법인번호 CORP_NO, 기관명 DMINSTT_NM, 대표자명 CEO_NM, 주소 ADRS, 우편번호 ZIP, 전화번호 TEL_NO
+		FROM epdbs_link.epdbs.dbo.수요기관_NEW
+		WHERE 사업자등록번호 = #{bizno}
+	</select>
+	
+	<!-- 대리인 공사정보목록 -->
+	<select id="selectDdcJoinList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.CntrctInfoVO">
+		SELECT 공제계약번호 DDC_JOIN_NO, 공사명 CNTRCT_NM
+		FROM epdbs_link.epdbs.dbo.공제계약
+		WHERE 사업자등록번호 = #{bizno}
+		AND 공제계약번호 IS NOT NULL
+	</select>
+	
+	<!-- 사용자공사관계(대리인 관리공사) 등록 -->
+	<insert id="insertUserCntrctRelate" parameterType="kr.or.cwma.admin.userInfo.vo.UserCntrctRelateVO">
+		INSERT INTO USER_CNTRCT_RELATE(
+			USER_ID, DDC_JOIN_NO
+		) VALUES (
+			#{userId}, #{ddcJoinNo}
+		)
+	</insert>
+	
+	<!-- 마지막 로그인일시 변경 -->
+	<update id="updateUserLoginDt" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO">
+		UPDATE USER_INFO
+		SET LAST_LOGIN_DT = GETDATE()
+		WHERE USER_ID = #{userId};
+		
+		MERGE INTO USER_LOGIN_STATS A
+			USING (VALUES (1)) AS Source (Number)
+				ON A.LOGIN_DE = CONVERT(VARCHAR(10), GETDATE(), 23)
+				AND A.SE = #{se}
+			WHEN MATCHED THEN
+				UPDATE SET 
+					CNT = CNT+1
+			WHEN NOT MATCHED THEN
+				INSERT(
+					LOGIN_DE, SE, CNT
+				) VALUES(
+					CONVERT(VARCHAR(10), GETDATE(), 23), #{se}, 1
+				);
+	</update>
+	
+	<!-- 비밀번호 변경 -->
+	<update id="updateUserPassword" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO">
+		UPDATE USER_INFO
+		SET PASSWORD = #{password},
+			PASSWORD_CHG_DT = GETDATE()
+		WHERE USER_ID = #{userId}
+		AND NM = #{nm}
+		AND CI_VALUE = #{ciValue}
+	</update>
+	
+	<!-- 회원 직종정보 및 가입이력등록 -->
+	<update id="updateUserMainJssfcJoinAt" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO">
+		MERGE INTO USER_MAIN_JSSFC A
+			USING (
+				SELECT 
+					IHIDNUM, NM, ADRES, MOBLPHON_NO
+				FROM USER_INFO
+				WHERE IHIDNUM = #{ihidnum}
+			) B
+				ON A.IHIDNUM = B.IHIDNUM
+			WHEN MATCHED THEN
+				UPDATE SET 
+					JOIN_AT = 'Y'
+					,JOIN_DT = GETDATE()
+			WHEN NOT MATCHED THEN
+				INSERT(
+					IHIDNUM, NM, ADRES, TELNO, JOIN_AT, JOIN_DT
+				) VALUES(
+					B.IHIDNUM, B.NM, B.ADRES, B.MOBLPHON_NO, 'Y', GETDATE()
+				);
+	</update>
+	
+</mapper>

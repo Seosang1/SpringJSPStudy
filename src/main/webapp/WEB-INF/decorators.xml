@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<decorators defaultdir="/WEB-INF/jsp">
+	<excludes>
+		<pattern>/error/*.do</pattern>
+		<pattern>/admin/login.do</pattern>
+		<pattern>/common/adrsPop.do*</pattern>
+	</excludes>
+
+	<!-- 사용자 -->
+	<decorator name="default" page="/WEB-INF/jsp/decorator/default.jsp">
+		<pattern>/*</pattern>
+	</decorator>
+	<decorator name="header" page="/WEB-INF/jsp/decorator/inc/header.jsp" />
+	<decorator name="footer" page="/WEB-INF/jsp/decorator/inc/footer.jsp" />
+
+	<!-- 팝업 -->
+	<decorator name="popup" page="/WEB-INF/jsp/decorator/popup.jsp">
+		<pattern>/*Pop.do*</pattern>
+		<pattern>/**/*Pop.do*</pattern>
+		<pattern>/**/popup.do*</pattern>
+	</decorator>
+
+	<!-- 관리자 -->
+	<decorator name="admin" page="/WEB-INF/jsp/decorator/admin.jsp">
+		<pattern>/admin/**</pattern>
+	</decorator>
+	<decorator name="adminHeader" page="/WEB-INF/jsp/decorator/inc/adminHeader.jsp" />
+	<decorator name="adminFooter" page="/WEB-INF/jsp/decorator/inc/adminFooter.jsp" />
+
+</decorators>

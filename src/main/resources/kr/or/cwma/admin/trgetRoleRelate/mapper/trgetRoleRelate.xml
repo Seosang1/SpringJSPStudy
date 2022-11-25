@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.trgetRoleRelate.mapper.TrgetRoleRelateMapper">
+
+	<!-- 목록조회 -->
+	<select id="selectTrgetRoleRelateList" parameterType="kr.or.cwma.admin.trgetRoleRelate.vo.TrgetRoleRelateVO" resultType="kr.or.cwma.admin.trgetRoleRelate.vo.TrgetRoleRelateVO">
+		SELECT 
+			ROLE_SN,
+			SE,
+			TRGET
+		FROM TRGET_ROLE_RELATE
+		WHERE SE = #{se}
+		AND TRGET = #{trget}
+	</select>
+
+	<!-- 수정 -->
+	<update id="updateTrgetRoleRelate" parameterType="kr.or.cwma.admin.trgetRoleRelate.vo.TrgetRoleRelateVO">
+		INSERT INTO TRGET_ROLE_RELATE_HIST
+		SELECT
+			TOP 1 
+			(SELECT ISNULL(MAX(SN), 0)+1 FROM TRGET_ROLE_RELATE_HIST) SN,
+			ROLE_SN, SE, TRGET, CHG_SE, RGST_DT, RGST_ID
+		FROM (
+				SELECT 1 ORD, *, 'THCS0002' CHG_SE, GETDATE() RGST_DT, #{rgstId} RGST_ID
+				FROM TRGET_ROLE_RELATE
+				WHERE SE = #{se}
+				AND TRGET = #{trget}
+					UNION ALL
+				SELECT 2, #{roleSn}, #{se}, #{trget}, 'THCS0001', GETDATE(), #{rgstId} RGST_ID
+		) A
+		ORDER BY ORD;
+				
+		MERGE TRGET_ROLE_RELATE A
+			USING (VALUES (1)) AS Source (Number)
+				ON A.SE = #{se}
+				AND A.TRGET = #{trget}
+			WHEN MATCHED THEN
+				UPDATE SET 
+					ROLE_SN = #{roleSn}
+			WHEN NOT MATCHED THEN
+				INSERT(
+					ROLE_SN, SE, TRGET
+				)VALUES(
+					#{roleSn}, #{se}, #{trget}
+				);
+	</update>
+
+	<!-- 삭제 -->
+	<delete id="deleteTrgetRoleRelate" parameterType="kr.or.cwma.admin.trgetRoleRelate.vo.TrgetRoleRelateVO">
+		INSERT INTO TRGET_ROLE_RELATE_HIST
+		SELECT
+			(SELECT ISNULL(MAX(SN), 0)+1 FROM TRGET_ROLE_RELATE_HIST) SN,
+			ROLE_SN, SE, TRGET, 'THCS0003' CHG_SE, GETDATE() RGST_DT, #{rgstId} RGST_ID
+		FROM TRGET_ROLE_RELATE
+		WHERE SE = #{se}
+		AND TRGET = #{trget};
+				
+		DELETE FROM TRGET_ROLE_RELATE
+		WHERE SE = #{se}
+		AND TRGET = #{trget};
+	</delete>
+
+</mapper>

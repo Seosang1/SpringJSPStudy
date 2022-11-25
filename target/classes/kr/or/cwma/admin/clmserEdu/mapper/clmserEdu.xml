@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.clmserEdu.mapper.ClmserEduMapper">
+
+	<sql id="listWhere">
+		<if test='sj != null and sj != ""'>
+			AND SJ = #{sj}
+		</if>
+		<if test='se != null and se != ""'>
+			AND SE = #{se}
+		</if>
+		<if test='vidoUrl != null and vidoUrl != ""'>
+			AND VIDO_URL = #{vidoUrl}
+		</if>
+		<if test='rgstDt != null and rgstDt != ""'>
+			AND RGST_DT = #{rgstDt}
+		</if>
+	</sql>
+	
+	<!-- 목록갯수조회 -->
+	<select id="selectClmserEduListCnt" parameterType="kr.or.cwma.admin.clmserEdu.vo.ClmserEduVO" resultType="int">
+		SELECT COUNT(1)
+		FROM CLMSER_EDU
+		WHERE 1 = 1 
+		<include refid="listWhere" />
+	</select>
+
+	<!-- 목록조회 -->
+	<select id="selectClmserEduList" parameterType="kr.or.cwma.admin.clmserEdu.vo.ClmserEduVO" resultType="kr.or.cwma.admin.clmserEdu.vo.ClmserEduVO">
+		SELECT *  
+		FROM( 
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY A.SN) AS ROWNUM, 
+				A.SN, SJ, SE, VIDO_URL, A.RGST_DT, B.COMPL_AT [relVO.COMPL_AT], B.COMPL_DT [relVO.COMPL_DT], B.SN [relVO.SN],
+				C.CD_NM SE_NM
+			FROM CLMSER_EDU A
+				LEFT JOIN USER_CLMSER_EDU_REL B
+					ON A.SN = B.EDU_SN
+					AND B.IHIDNUM = #{ihidnum}
+				LEFT JOIN CMMN_CD C
+					ON A.SE = C.CD_ID
+			WHERE 1 = 1
+			<include refid="listWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectClmserEduView" parameterType="kr.or.cwma.admin.clmserEdu.vo.ClmserEduVO" resultType="kr.or.cwma.admin.clmserEdu.vo.ClmserEduVO">
+		SELECT 
+			SN, SJ, SE, VIDO_URL, RGST_DT
+		FROM CLMSER_EDU
+		WHERE SN = #{sn}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertClmserEdu" parameterType="kr.or.cwma.admin.clmserEdu.vo.ClmserEduVO">
+		<selectKey keyProperty="sn" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM CLMSER_EDU
+		</selectKey>
+		INSERT INTO CLMSER_EDU(
+			SN, SJ, SE, VIDO_URL, RGST_DT
+		)VALUES(
+			#{sn}, #{sj}, #{se}, #{vidoUrl}, GETDATE()
+		)
+	</insert>
+
+	<!-- 수정 -->
+	<update id="updateClmserEdu" parameterType="kr.or.cwma.admin.clmserEdu.vo.ClmserEduVO">
+		UPDATE CLMSER_EDU
+		SET SN = #{sn}
+			,SJ = #{sj}
+			,VIDO_URL = #{vidoUrl}
+			,SE = #{se}
+		WHERE SN = #{sn}
+	</update>
+
+	<!-- 삭제 -->
+	<delete id="deleteClmserEdu" parameterType="kr.or.cwma.admin.clmserEdu.vo.ClmserEduVO">
+		DELETE FROM USER_CLMSER_EDU_REL
+		WHERE EDU_SN = #{sn};
+		
+		DELETE FROM CLMSER_EDU
+		WHERE SN = #{sn};
+	</delete>
+	
+	<!-- 사용자관계 등록 -->
+	<insert id="insertUserClmserEduRel" parameterType="kr.or.cwma.admin.clmserEdu.vo.UserClmserEduRelVO">
+		<selectKey keyProperty="sn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM USER_CLMSER_EDU_REL
+		</selectKey>
+		INSERT INTO USER_CLMSER_EDU_REL(
+			SN, IHIDNUM, EDU_SN, COMPL_AT, COMPL_DT
+		)VALUES(
+			#{sn}, #{ihidnum}, #{eduSn}, 'Y', GETDATE()
+		)
+	</insert>
+	
+	<!-- 상세조회 -->
+	<select id="selectUserClmserEduRelView" parameterType="kr.or.cwma.admin.clmserEdu.vo.UserClmserEduRelVO" resultType="kr.or.cwma.admin.clmserEdu.vo.UserClmserEduRelVO">
+		SELECT
+			A.SN, IHIDNUM, EDU_SN, COMPL_AT, COMPL_DT
+		FROM USER_CLMSER_EDU_REL A
+			INNER JOIN CLMSER_EDU B
+				ON A.EDU_SN = B.SN
+				AND B.SE = 'CESE0001'
+		WHERE IHIDNUM = #{ihidnum}
+	</select>
+
+</mapper>

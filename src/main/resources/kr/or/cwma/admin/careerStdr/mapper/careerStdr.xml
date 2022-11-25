@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.careerStdr.mapper.CareerStdrMapper">
+
+	<!-- 목록조회 -->
+	<select id="selectCareerStdrList" parameterType="kr.or.cwma.admin.careerStdr.vo.CareerStdrVO" resultType="kr.or.cwma.admin.careerStdr.vo.CareerStdrVO">
+		SELECT 
+			SN, SE, GRAD_1, GRAD_2, GRAD_3, GRAD_4, APPLC_DE, A.RGST_DT, A.RGST_ID,
+			B.USER_NAME RGST_NM
+		FROM CAREER_STDR A
+			LEFT JOIN epdbs_link.sso.dbo.V_USER B
+				ON A.RGST_ID = B.USER_ID
+		WHERE SE = #{se}
+		ORDER BY SN DESC
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectCareerStdrView" parameterType="kr.or.cwma.admin.careerStdr.vo.CareerStdrVO" resultType="kr.or.cwma.admin.careerStdr.vo.CareerStdrVO">
+		SELECT TOP 1
+			SN,
+			SE,
+			GRAD_1,
+			GRAD_2,
+			GRAD_3,
+			GRAD_4,
+			APPLC_DE,
+			RGST_DT,
+			RGST_ID
+		FROM CAREER_STDR
+		WHERE SE = #{se}
+		ORDER BY SN DESC
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertCareerStdr" parameterType="kr.or.cwma.admin.careerStdr.vo.CareerStdrVO">
+		<selectKey keyProperty="sn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM CAREER_STDR
+		</selectKey>
+		INSERT INTO CAREER_STDR(
+			SN,
+			SE,
+			GRAD_1,
+			GRAD_2,
+			GRAD_3,
+			GRAD_4,
+			APPLC_DE,
+			RGST_DT,
+			RGST_ID
+		)VALUES(
+			#{sn}, #{se}, #{grad1}, #{grad2}, #{grad3}, #{grad4}, #{applcDe}, GETDATE(), #{rgstId}
+		)
+	</insert>
+
+</mapper>

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.banner.mapper.BannerMapper">
+	<sql id="listWhere">
+		<if test='bannerNm != null and bannerNm != ""'>
+			AND BANNER_NM LIKE CONCAT('%', #{bannerNm}, '%')
+		</if>
+		<if test='se != null and se != ""'>
+			AND SE = #{se}
+		</if>
+		<if test='bgnde != null and bgnde != ""'>
+			AND RGST_DT >= #{bgnde}
+		</if>
+		<if test='endde != null and endde != ""'>
+			AND RGST_DT &lt;= CONCAT(#{endde}, ' 23:59:59')
+		</if>
+	</sql>
+	
+	<!-- 목록갯수조회 -->
+	<select id="selectBannerListCnt" parameterType="kr.or.cwma.admin.banner.vo.BannerVO" resultType="int">
+		SELECT COUNT(1)
+		FROM BANNER
+		WHERE 1 = 1
+		<include refid="listWhere" />
+	</select>
+
+	<!-- 목록조회 -->
+	<select id="selectBannerList" parameterType="kr.or.cwma.admin.banner.vo.BannerVO" resultType="kr.or.cwma.admin.banner.vo.BannerVO">
+		SELECT *  
+		FROM( 
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY ORDR, SN DESC) AS ROWNUM, 
+				SN,
+				BANNER_NM,
+				IMAGE_DC,
+				URL,
+				TRGT,
+				BGNDE,
+				ENDDE,
+				ORDR,
+				SE,
+				(
+					CASE
+						WHEN BGNDE &lt;= CONVERT(VARCHAR, GETDATE(), 23) AND ENDDE >= CONVERT(VARCHAR, GETDATE(), 23) AND USE_YN = 'Y' THEN 'Y'
+						ELSE 'N'
+					END 
+				) DISPLAY_AT,
+				RGST_DT,
+				RGST_ID
+			FROM BANNER A
+			WHERE 1 = 1 
+			<include refid="listWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectBannerView" parameterType="kr.or.cwma.admin.banner.vo.BannerVO" resultType="kr.or.cwma.admin.banner.vo.BannerVO">
+		SELECT 
+			SN,
+			BANNER_NM,
+			IMAGE_DC,
+			URL,
+			TRGT,
+			BGNDE,
+			ENDDE,
+			ORDR,
+			SE,
+			RGST_DT,
+			RGST_ID,
+			CHG_DT,
+			CHG_ID,
+			USE_YN
+		FROM BANNER
+		WHERE SN = #{sn}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertBanner" parameterType="kr.or.cwma.admin.banner.vo.BannerVO">
+		<selectKey keyProperty="sn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM BANNER
+		</selectKey>
+		INSERT INTO BANNER(
+			SN, BANNER_NM, IMAGE_DC, URL, TRGT, BGNDE, ENDDE, ORDR, SE, RGST_DT, RGST_ID, USE_YN
+		)VALUES(
+			#{sn}, #{bannerNm}, #{imageDc}, #{url}, #{trgt}, #{bgnde}, #{endde}, #{ordr}, #{se}, GETDATE(), #{rgstId}, #{useYn}
+		)
+	</insert>
+
+	<!-- 수정 -->
+	<update id="updateBanner" parameterType="kr.or.cwma.admin.banner.vo.BannerVO">
+		UPDATE BANNER
+		SET SN = #{sn}
+			,BANNER_NM = #{bannerNm}
+			,IMAGE_DC = #{imageDc}
+			,URL = #{url}
+			,TRGT = #{trgt}
+			,BGNDE = #{bgnde}
+			,ENDDE = #{endde}
+			,ORDR = #{ordr}
+			,RGST_DT = #{rgstDt}
+			,RGST_ID = #{rgstId}
+			,CHG_DT = #{chgDt}
+			,CHG_ID = #{chgId}
+			,USE_YN = #{useYn}
+		WHERE 1 = 1 
+		AND SN = #{sn}
+	</update>
+
+	<!-- 삭제 -->
+	<delete id="deleteBanner" parameterType="kr.or.cwma.admin.banner.vo.BannerVO">
+		DELETE FROM BANNER
+		WHERE 1 = 1 
+		AND SN = #{sn}
+	</delete>
+
+</mapper>

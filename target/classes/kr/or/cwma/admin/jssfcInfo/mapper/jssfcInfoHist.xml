@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.jssfcInfo.mapper.JssfcInfoHistMapper">
+
+	<!-- 목록조회 -->
+	<select id="selectJssfcInfoHistList" parameterType="kr.or.cwma.admin.jssfcInfo.vo.JssfcInfoVO" resultType="kr.or.cwma.admin.jssfcInfo.vo.JssfcInfoVO">
+		SELECT 
+			A.SN,
+			JSSFC_NO,
+			JSSFC_NM,
+			STDR_DAYCNT,
+			SE,
+			ACTVTY_AT,
+			APPLC_DE,
+			RGST_ID
+		FROM JSSFC_INFO_HIST A
+			INNER JOIN JSSFC_INFO_HIST_MANAGE B
+				ON A.SN = B.SN
+		WHERE A.SN = (SELECT TOP 1 SN FROM JSSFC_INFO_HIST_MANAGE ORDER BY SN DESC)
+		ORDER BY A.JSSFC_NO
+	</select>
+	
+	<!-- 상세조회 -->
+	<select id="selectJssfcInfoHistView" parameterType="kr.or.cwma.admin.jssfcInfo.vo.JssfcInfoVO" resultType="kr.or.cwma.admin.jssfcInfo.vo.JssfcInfoVO">
+		SELECT 
+			A.SN,
+			JSSFC_NO,
+			JSSFC_NM,
+			STDR_DAYCNT,
+			SE,
+			B.CD_NM SE_NM
+			ACTVTY_AT,
+			APPLC_DE,
+			RGST_ID
+		FROM JSSFC_INFO_HIST A
+			INNER JOIN JSSFC_INFO_HIST_MANAGE B
+				ON A.SN = B.SN
+			INNER JOIN CMMN_CD B
+				ON A.SE = B.CD_ID
+		WHERE A.JSSFC_NO = #{jssfcNo}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertJssfcInfoHist" parameterType="kr.or.cwma.admin.jssfcInfo.vo.JssfcInfoVO">
+		INSERT INTO JSSFC_INFO_HIST(
+			SN,
+			JSSFC_NO,
+			JSSFC_NM,
+			STDR_DAYCNT,
+			SE,
+			ACTVTY_AT
+		)VALUES(
+			#{sn}, #{jssfcNo}, #{jssfcNm}, #{stdrDaycnt}, #{se}, #{actvtyAt}
+		)
+	</insert>
+
+	<!-- 수정 -->
+	<update id="updateJssfcInfoHist" parameterType="kr.or.cwma.admin.jssfcInfo.vo.JssfcInfoVO">
+		UPDATE JSSFC_INFO_HIST
+		SET SE = #{se}
+			,ACTVTY_AT = #{actvtyAt}
+		WHERE SN = #{sn}
+		AND JSSFC_NO = #{jssfcNo}
+	</update>
+
+</mapper>

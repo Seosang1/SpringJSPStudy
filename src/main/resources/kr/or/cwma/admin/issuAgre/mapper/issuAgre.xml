@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.issuAgre.mapper.IssuAgreMapper">
+
+	<!-- 발급동의신청 검색조건 -->
+	<sql id="issuAgreWhere">
+		<if test='trmnatAt == "Y"'>
+			AND (A.해지구분 is null OR A.해지구분 = '')
+			AND (A.해지일자 is null OR A.해지일자 = '')
+		</if>
+	</sql>
+	
+	<!-- 발급동의신청 공사목록 검색조건 -->
+	<sql id="cntrctListWhere">
+		<if test='trmnatAt == "Y"'>
+			AND (A.해지구분 is null OR A.해지구분 = '')
+			AND (A.해지일자 is null OR A.해지일자 = '')
+		</if>
+		<if test='bizno != null and bizno != ""'>
+			AND A.BIZNO = #{bizno}
+		</if>
+		<!-- 근무한 공사 -->
+<!-- 	<if test='bizno == null || bizno == ""'>
+			AND A.DDC_JOIN_NO IN (
+			SELECT DDC_JOIN_NO FROM CWMA_CAREER WHERE IHIDNUM = #{ihidnum} GROUP BY DDC_JOIN_NO
+			UNION ALL
+			SELECT BPLC_NO FROM CNTC_KCOMWEL_WORK WHERE IHIDNUM = #{ihidnum} GROUP BY BPLC_NO
+		)
+		</if> -->
+		<if test='cnstwkNm != null and cnstwkNm != ""'>
+			AND A.CNTRCT_NM LIKE CONCAT('%', #{cnstwkNm}, '%')
+		</if>
+	</sql>
+	
+	<!-- 발급동의신청 공사 조회(퇴직공제) -->
+	<select id="selectIssuAgre" parameterType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO" resultType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO">
+		SELECT 
+			 A.공사명		cnstwkNm
+			,D.상호			corpNm
+			,E.SN			sn
+			,E.IHIDNUM		ihidnum
+			,E.JSSFC_NO		jssfcNo
+			,E.DDC_JOIN_NO	ddcJoinNo	
+			,CONVERT(varchar,E.RGST_DT,23)			rgstDt
+			,CONVERT(varchar,E.VALID_DT,23)			validDt
+			,DATEDIFF(dd,getDate(),E.VALID_DT)+1	reAgreCnt
+			,E.SPT_SE		sptSe
+			,E.CNTRWK_SE	cntrwkSe
+			,F.CD_NM		cntrwkSeNm
+		FROM EPDBS_LINK.EPDBS.DBO.공제계약 A
+		INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CNTRCT_INFO B
+				ON A.공사번호 = B.CNTRCT_SEQ
+		INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CMMN_CD C
+				ON B.CNSTWK_STTUS_CD = C.CD_ID
+		INNER JOIN EPDBS_LINK.EPDBS.DBO.업체 D
+				ON A.사업자등록번호 = D.사업자등록번호
+		INNER JOIN ISSU_AGRE E
+				ON A.공제계약번호 = E.DDC_JOIN_NO
+ 		INNER JOIN CMMN_CD F
+				ON  F.CD_ID = E.CNTRWK_SE
+				AND F.PARNTS_CD_ID = 'AGSE0000'
+		WHERE 1=1
+		AND E.IHIDNUM = #{ihidnum}
+		AND E.VALID_DT >= getDate()
+		<if test='sn != null and sn != ""'>
+			AND E.SN = #{sn}
+		</if>
+		<if test='sn == null or sn == ""'>
+			AND E.SN = (
+					select MAX(sn) SN
+					from ISSU_AGRE 
+					where IHIDNUM = #{ihidnum}
+					)
+		</if>
+		<if test='deleteAt != null and deleteAt != ""'>
+			AND E.DELETE_AT = #{deleteAt}
+		</if>
+		<include refid="issuAgreWhere" />
+	</select>
+	
+	<!-- 발급동의신청 공사 조회(고용보험) -->
+	<select id="selectIssuAgreWork" parameterType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO" resultType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO">
+ 		SELECT 
+			 B.BPLC_NM			cnstwkNm
+			,A.상호				corpNm
+			,C.SN				sn
+			,C.IHIDNUM			ihidnum
+			,C.JSSFC_NO			jssfcNo
+			,C.DDC_JOIN_NO		ddcJoinNo
+			,CONVERT(VARCHAR,C.RGST_DT,23)			rgstDt
+			,CONVERT(VARCHAR,C.VALID_DT,23)			validDt
+			,DATEDIFF(DD,GETDATE(),C.VALID_DT)+1 	reAgreCnt
+			,C.SPT_SE			sptSe
+			,C.CNTRWK_SE	cntrwkSe
+			,E.CD_NM		cntrwkSeNm
+		FROM EPDBS_LINK.EPDBS.DBO.업체 A
+		INNER JOIN CNTC_KCOMWEL_WORK_CNSTWK B
+				ON B.BIZNO = A.사업자등록번호
+		INNER JOIN ISSU_AGRE C
+				ON C.DDC_JOIN_NO = B.BPLC_NO
+		INNER JOIN CMMN_CD E
+					ON  E.CD_ID = C.CNTRWK_SE
+					AND E.PARNTS_CD_ID = 'AGSE0000'
+		WHERE 1=1
+		AND C.IHIDNUM = #{ihidnum}
+		AND C.VALID_DT >= GETDATE()
+		AND (
+				(C.CNTRWK_SE = 'AGSE0002' AND B.SE = '일용')
+			OR 	(C.CNTRWK_SE = 'AGSE0003' AND B.SE = '상용')
+			)
+		<if test='sn != null and sn != ""'>
+			AND C.SN = #{sn}
+		</if>
+		<if test='sn == null or sn == ""'>
+			AND C.SN = (
+				SELECT MAX(SN) SN
+				FROM ISSU_AGRE 
+				WHERE IHIDNUM = #{ihidnum}
+				)
+		</if>
+		<if test='deleteAt != null and deleteAt != ""'>
+			AND C.DELETE_AT = #{deleteAt}
+		</if>
+	</select>
+	
+	<!-- 마이페이지 발급동의신청 등록 -->
+	<insert id="insertIssuAgre" parameterType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO">
+		<selectKey keyProperty="sn" resultType="Integer" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM ISSU_AGRE
+		</selectKey>
+		INSERT INTO ISSU_AGRE(
+			 SN
+			,IHIDNUM
+			,JSSFC_NO
+			,DDC_JOIN_NO
+			,RGST_DT
+			,SPT_SE
+			,CNTRWK_SE
+			,VALID_DT
+			,DELETE_AT
+			,RCEPT_NO
+		) VALUES(
+			 #{sn}
+			,#{ihidnum}
+			,#{jssfcNo}
+			,#{ddcJoinNo}
+			,GETDATE()
+			,#{sptSe}
+			,#{cntrwkSe}
+			,#{validDt}
+			,#{deleteAt}
+			,#{rceptNo}
+		)
+	</insert>
+	
+	<!-- 마이페이지 발급동의신청 수정 -->
+	<update id="updateIssuAgre" parameterType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO">
+		UPDATE ISSU_AGRE
+		SET 
+			 VALID_DT = #{validDt}
+			,RGST_DT = GETDATE()
+			<if test='deleteAt != null and deleteAt != ""'>
+				,DELETE_AT = #{deleteAt}
+			</if>
+		WHERE 1=1
+		AND SN = #{sn}
+	</update>
+	
+	<!-- 마이페이지 발급동의신청 삭제 -->
+	<update id="deleteIssuAgre" parameterType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO">
+		UPDATE ISSU_AGRE
+		SET VALID_DT = GETDATE()-1
+		WHERE 1=1
+		AND SN = #{sn}
+	</update>
+	
+	<!-- 관리자 결제관리 - 발급동의신청 조회(퇴직공제, 고용보험) -->
+	<select id="selectIssuAgreView" parameterType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO" resultType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO">
+		SELECT
+			 TOP 1 
+			 A.USER_ID
+			,A.NM
+			,A.IHIDNUM
+			,A.MOBLPHON_NO
+			,A.EMAIL
+			,C.DOC_NO
+			,CONVERT(VARCHAR,C.RGST_DT,23)	RGST_DT
+			,CONVERT(VARCHAR,H.RGST_DT,23)	ISSU_ON
+			,B.SN
+			,B.JSSFC_NO
+			,ISNULL((SELECT JSSFC_NM FROM JSSFC_INFO WHERE JSSFC_NO = B.JSSFC_NO), '')	JSSFC_NM
+			,B.DDC_JOIN_NO
+			,B.SPT_SE
+			,ISNULL((SELECT CD_NM FROM CMMN_CD WHERE CD_ID = B.SPT_SE), '')		SPT_SE_NM
+			,ISNULL(CASE WHEN D1.사업자등록번호 IS NOT NULL THEN D1.사업자등록번호 ELSE D2.BIZNO END, '')	BIZNO
+			,ISNULL(CASE WHEN D1.공사명 IS NOT NULL THEN D1.공사명 ELSE D2.BPLC_NM END, '')				CNSTWK_NM
+			,ISNULL(CASE WHEN E1.상호 IS NOT NULL THEN E1.상호 ELSE E2.기관명 END, '')					CORP_NM
+			,ISNULL(CASE WHEN E1.대표자 IS NOT NULL THEN E1.대표자 ELSE E2.대표자명 END, '')			CEO_NM
+			,ISNULL(CASE WHEN E1.전화번호 IS NOT NULL THEN E1.전화번호 ELSE E2.전화번호 END, '') 		TEL_NO
+			,ISNULL((SELECT USER_NAME FROM EPDBS_LINK.SSO.DBO.V_USER WHERE USER_ID = C.RGST_ID), '') 	RCEPT_USER
+			,ISNULL((SELECT BRFFC_NM FROM EPDBS_LINK.SSO.DBO.V_USER WHERE USER_ID = C.RGST_ID), '') 	RCEPT_DEPT
+		FROM ISSU_AGRE B
+		LEFT JOIN USER_INFO A
+			ON A.IHIDNUM = B.IHIDNUM
+		LEFT JOIN SANCTN_MAIN C 
+			ON C.DOC_NO = B.SN
+				AND C.SANCTN_KND = 'ARCS0003'
+		<!-- 퇴직공제 -->
+		LEFT JOIN EPDBS_LINK.EPDBS.DBO.공제계약 D1
+		ON D1.공제계약번호 = B.DDC_JOIN_NO
+			AND B.CNTRWK_SE = 'AGSE0001'
+
+		<!-- 고용보험 -->
+		LEFT JOIN CNTC_KCOMWEL_WORK_CNSTWK D2
+		ON D2.BPLC_NO = B.DDC_JOIN_NO
+			AND B.CNTRWK_SE != 'AGSE0001'
+		
+		LEFT JOIN EPDBS_LINK.EPDBS.DBO.업체 E1
+			ON (
+				E1.사업자등록번호 = D1.사업자등록번호
+				OR E1.사업자등록번호 = D2.BIZNO
+				)
+		LEFT JOIN EPDBS_LINK.EPDBS.DBO.수요기관_NEW E2
+			ON (
+				E2.사업자등록번호 = D1.사업자등록번호
+				OR E2.사업자등록번호 = D2.BIZNO
+				)
+
+		LEFT JOIN (
+					SELECT 
+						*
+					FROM SANCTN_PROGRS 
+					WHERE SANCTN_PROGRS_NO IN (
+							SELECT
+								MAX(SANCTN_PROGRS_NO)
+							FROM SANCTN_PROGRS 
+							GROUP BY SANCTN_NO, SANCTN_KND)
+				) H
+				ON C.SANCTN_NO = H.SANCTN_NO
+		WHERE 1=1
+		AND C.DOC_NO = #{docNo}
+	</select>
+	
+	<!-- 발급동의신청 공사목록 개수 -->
+	<select id="selectCntrctListCnt" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO"  resultType="int">
+		SELECT
+			COUNT(1)
+		FROM CNTRCT_INFO A
+		INNER JOIN epdbs_link.epdbs.dbo.업체 B
+				ON A.BIZNO = B.사업자등록번호
+		WHERE 1=1
+		AND A.BIZNO IS NOT NULL 
+		AND A.BIZNO != ''
+		<include refid="cntrctListWhere" />
+	</select>
+	
+	<!-- 발급동의신청 공사목록 -->
+	<select id="selectCntrctList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.CntrctInfoVO">
+		SELECT
+			*
+		FROM(
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY A.DDC_JOIN_NO DESC) AS ROWNUM
+				,A.DDC_JOIN_NO
+				,A.CNTRCT_NM
+				,A.SE_NM
+				,A.CORP_NM
+				,A.BIZNO
+				,(SELECT CD_ID FROM CMMN_CD WHERE CD_NM = A.SE_NM AND PARNTS_CD_ID = 'AGSE0000')	CNTRWK_SE
+				,B.대표자 CEO_NM
+				,B.전화번호 TEL_NO
+			FROM CNTRCT_INFO A
+			INNER JOIN epdbs_link.epdbs.dbo.업체 B
+				ON A.BIZNO = B.사업자등록번호
+			WHERE 1=1
+			AND A.BIZNO IS NOT NULL 
+			AND A.BIZNO != ''
+			<include refid="cntrctListWhere" />
+		) T
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+	
+	<!-- 발급동의신청 조회 -->
+	<select id="selectIssuAgreInfo" parameterType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO" resultType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO">
+		SELECT
+			 SN
+			,IHIDNUM
+			,JSSFC_NO
+			,DDC_JOIN_NO
+			,RGST_DT
+			,VALID_DT
+			,SPT_SE
+			,CNTRWK_SE
+			,DELETE_AT
+			,RCEPT_NO
+		FROM ISSU_AGRE 
+		WHERE 1=1
+		<if test='sn != null and sn != ""'>
+			AND SN = #{sn}
+		</if>
+		AND IHIDNUM = #{ihidnum}
+		AND VALID_DT >= GETDATE()
+		AND SN = (
+				SELECT MAX(SN) SN
+				FROM ISSU_AGRE 
+				WHERE IHIDNUM = #{ihidnum}
+				)
+	</select>
+	
+	<!-- 발급동의신청 접수번호 카운트 -->
+	<select id="selectIssuAgreRceptNoCnt" parameterType="String" resultType="int">
+		SELECT 
+			COUNT(1) + 1
+		FROM ISSU_AGRE
+		WHERE SUBSTRING(RCEPT_NO, 1, 8) = SUBSTRING(#{rceptNo}, 1, 8)
+	</select>
+	
+	
+	<!-- 발급동의신청 접수번호 카운트 -->
+	<update id="updateIssuAgreRceptNo" parameterType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO">
+		UPDATE ISSU_AGRE
+		SET RCEPT_NO = #{rceptNo}
+		WHERE 1=1
+		AND SN = #{sn}
+	</update>
+	
+</mapper>

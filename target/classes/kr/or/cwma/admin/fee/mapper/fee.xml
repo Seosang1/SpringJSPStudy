@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.fee.mapper.FeeMapper">
+	<!-- 목록조회 -->
+	<select id="selectFeeList" parameterType="kr.or.cwma.admin.fee.vo.FeeVO" resultType="kr.or.cwma.admin.fee.vo.FeeVO">
+		SELECT
+			SN, FRST, GRAD, GRAD_ONLINE, HOLD, HOLD_ONLINE, APPLC_DE, RGST_ID, B.USER_NAME RGST_NM, RGST_DT
+		FROM FEE A
+			LEFT JOIN epdbs_link.sso.dbo.V_USER B
+				ON A.RGST_ID = B.USER_ID
+		ORDER BY SN DESC
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectFeeView" parameterType="kr.or.cwma.admin.fee.vo.FeeVO" resultType="kr.or.cwma.admin.fee.vo.FeeVO">
+		SELECT TOP 1 
+			SN, FRST, GRAD, GRAD_ONLINE, HOLD, HOLD_ONLINE, APPLC_DE, RGST_ID, RGST_DT
+		FROM FEE
+		ORDER BY SN DESC
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertFee" parameterType="kr.or.cwma.admin.fee.vo.FeeVO">
+		<selectKey keyProperty="sn" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM FEE
+		</selectKey>
+		INSERT INTO FEE(
+			SN, FRST, GRAD, GRAD_ONLINE, HOLD, HOLD_ONLINE, APPLC_DE, RGST_ID, RGST_DT
+		)VALUES(
+			#{sn}, #{frst}, #{grad}, #{gradOnline}, #{hold}, #{holdOnline}, #{applcDe}, #{rgstId}, GETDATE()
+		)
+	</insert>
+
+</mapper>

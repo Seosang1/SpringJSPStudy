@@ -1,0 +1,282 @@
+@charset "utf-8";
+
+/* default set */
+@import url("base.css");
+
+/* common*/
+@import url("common.css");
+
+/* font awesome */
+@import url("fontawesome.all.css");
+
+/* 2차 */
+/* Table Wrap for Scroll */
+div.tableWrap { overflow:hidden; position:relative; }
+div.tableWrap > div { overflow-x:hidden; overflow-y:auto; width:100%; height:100%; margin-top:91px; border-bottom:1px solid #c8c8c8; }
+div.tableWrap div > span { position:absolute; top:0; left:0; width:100%; height:92px; border-bottom:1px dashed #c8c8c8; background-color:#f9f9f9; }
+div.tableWrap table { margin:0 !important; border:0 !important; }
+div.tableWrap table thead tr > * { height:0 !important; padding:0 !important; border:0 !important; }
+div.tableWrap th span { overflow:hidden; display:block !important; position:absolute; top:0; height:44px; padding:0; box-sizing:border-box; background-color:#f9f9f9; color:#000; line-height:44px; }
+div.tableWrap th:nth-child(1) span { z-index:101; }
+div.tableWrap th:nth-child(2) span { z-index:102; }
+div.tableWrap th:nth-child(3) span { z-index:103; }
+div.tableWrap th:nth-child(4) span { z-index:104; }
+div.tableWrap th:nth-child(5) span { z-index:105; }
+div.tableWrap th:nth-child(6) span { z-index:106; }
+div.tableWrap th:nth-child(7) span { z-index:107; }
+div.tableWrap th:nth-child(8) span { z-index:108; }
+div.tableWrap th:nth-child(9) span { z-index:109; }
+
+div.tableWrap.career { margin-top:5px; }
+div.tableWrap.career > div { max-height:226px; }
+div.tableWrap.career thead tr:first-child td > span { overflow:hidden; display:block; position:absolute; top:0; left:0; width:100%; padding:13px 0 13px 30px; border-top:2px solid #9e9e9e; border-bottom:1px solid #9e9e9e; background-color:#f2f2f2; }
+div.tableWrap.career thead tr:last-child th span { top:48px; }
+div.tableWrap.career thead tr:last-child th:nth-child(1) span { width:35%; background-image:none; }
+div.tableWrap.career thead tr:last-child th:nth-child(2) span { width:15%; }
+div.tableWrap.career thead tr:last-child th:nth-child(3) span { width:20%; }
+div.tableWrap.career thead tr:last-child th:nth-child(4) span { width:10%; }
+div.tableWrap.career thead tr:last-child th:nth-child(5) span { width:10%; }
+div.tableWrap.career thead tr:last-child th:nth-child(6) span { width:10%; }
+
+div.tableWrap.qualification { margin-top:5px; }
+div.tableWrap.qualification > div { max-height:226px; }
+div.tableWrap.qualification thead tr:first-child td > span { overflow:hidden; display:block; position:absolute; top:0; left:0; width:100%; padding:13px 0 13px 30px; border-top:2px solid #9e9e9e; border-bottom:1px solid #9e9e9e; background-color:#f2f2f2; }
+div.tableWrap.qualification thead tr:last-child th span { top:48px; }
+div.tableWrap.qualification thead tr:last-child th:nth-child(1) span { width:30%; background-image:none; }
+div.tableWrap.qualification thead tr:last-child th:nth-child(2) span { width:30%; }
+div.tableWrap.qualification thead tr:last-child th:nth-child(3) span { width:20%; }
+div.tableWrap.qualification thead tr:last-child th:nth-child(4) span { width:20%; }
+
+div.tableWrap.education { margin-top:5px; }
+div.tableWrap.education > div { max-height:226px; }
+div.tableWrap.education thead tr:first-child td > span { overflow:hidden; display:block; position:absolute; top:0; left:0; width:100%; padding:13px 0 13px 30px; border-top:2px solid #9e9e9e; border-bottom:1px solid #9e9e9e; background-color:#f2f2f2; }
+div.tableWrap.education thead tr:last-child th span { top:48px; }
+div.tableWrap.education thead tr:last-child th:nth-child(1) span { width:30%; background-image:none; }
+div.tableWrap.education thead tr:last-child th:nth-child(2) span { width:30%; }
+div.tableWrap.education thead tr:last-child th:nth-child(3) span { width:20%; }
+div.tableWrap.education thead tr:last-child th:nth-child(4) span { width:20%; }
+
+div.tableWrap.prize { margin-top:5px; }
+div.tableWrap.prize > div { max-height:226px; }
+div.tableWrap.prize thead tr:first-child td > span { overflow:hidden; display:block; position:absolute; top:0; left:0; width:100%; padding:13px 0 13px 30px; border-top:2px solid #9e9e9e; border-bottom:1px solid #9e9e9e; background-color:#f2f2f2; }
+div.tableWrap.prize thead tr:last-child th span { top:48px; }
+div.tableWrap.prize thead tr:last-child th:nth-child(1) span { width:30%; background-image:none; }
+div.tableWrap.prize thead tr:last-child th:nth-child(2) span { width:15%; }
+div.tableWrap.prize thead tr:last-child th:nth-child(3) span { width:10%; }
+div.tableWrap.prize thead tr:last-child th:nth-child(4) span { width:15%; }
+div.tableWrap.prize thead tr:last-child th:nth-child(5) span { width:20%; }
+div.tableWrap.prize thead tr:last-child th:nth-child(6) span { width:10%; }
+
+/* Columns */
+div.content-col { overflow:hidden; }
+div.content-col > div { width:calc(50% - 2px); }
+div.content-col > div:first-child { float:left; }
+div.content-col > div:last-child { float:right; }
+div.content-col > div.education { height:462px; }
+div.content-col > div.education > div { max-height:409px; margin-top:5px; overflow-x:auto; }
+div.content-col > div.education > div > :first-child { margin-top:0; }
+
+/* Layer */
+.gnb_sub_wrap { z-index:7000; }
+
+div.pageDisabled { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:#000; opacity:.8; z-index:7777; }
+div.layer { display:none; position:fixed; top:50%; left:50%; background-color:#fff; }
+div.layer h1 { padding-left:30px; border-bottom:1px solid #ddd; font-size:25px; font-weight:500; line-height:3; }
+div.layer h1 + button { position:absolute; top:20px; right:25px; font-size:30px; font-weight:500; text-shadow:0 1px 0 #fff; background-color:#fff; }
+div.layer > div { padding:30px; }
+div.layer table { width:100%; border:1px solid #b4b4b4; border-top:2px solid #222; }
+div.layer table th { padding:0 20px; color:#333; font-size:15px; line-height:40px; text-align:left; background-color:#f2f2f2; }
+div.layer table td { padding:0 10px; color:#666; font-size:15px; line-height:1.5; text-align:left; white-space:nowrap; background-color:#fff; }
+div.layer table tr + tr th,
+div.layer table tr + tr td { border-top: 1px dashed #c8c8c8; }
+div.layer table td > * { vertical-align:middle; }
+
+div.layer table.list th { text-align:center; }
+div.layer table.list td { height:40px; }
+
+div.layer table input[type='text'],
+div.layer table input[type='password'],
+div.layer table input[type='number'] { height:28px; padding:0 5px; border:1px solid #d7d7d7; color:#333; font-size:15px; line-height:28px; }
+div.layer table input:read-only { background-color:#eee; cursor:default; }
+
+div.layer div.input_date * { float:left; }
+div.layer div.input_date input[type=text] { width:105px; height:26px; }
+
+/* 공사명 검색 */
+#construction { width:700px; }
+#construction table.construction { margin-top:20px; }
+#construction table.construction td { text-align:center; }
+#construction table.construction button { background-color:transparent; }
+
+/* 발급동의 */
+#issueAgreement { width:700px; }
+
+/* 교육추가 */
+#newVideo { width:700px; }
+
+/* 근로직종확인신청 */
+div.tableWrap.careerCheck { margin:5px 0 10px; }
+div.tableWrap.careerCheck > div { margin-top:45px; max-height:231px; }
+div.tableWrap.careerCheck > div > span { height:47px; border-top:2px solid #9e9e9e; }
+div.tableWrap.careerCheck thead th span { top:2px; }
+div.tableWrap.careerCheck thead th span input[type=checkbox] { margin-top:15px; }
+div.tableWrap.careerCheck thead th:nth-child(1) span { width:5%; background-image:none; }
+div.tableWrap.careerCheck thead th:nth-child(2) span { width:30%; }
+div.tableWrap.careerCheck thead th:nth-child(3) span { width:15%; }
+div.tableWrap.careerCheck thead th:nth-child(4) span { width:20%; }
+div.tableWrap.careerCheck thead th:nth-child(5) span { width:10%; }
+div.tableWrap.careerCheck thead th:nth-child(6) span { width:10%; }
+div.tableWrap.careerCheck thead th:nth-child(7) span { width:10%; }
+
+#checkAlert { width:400px; }
+#checkAlert > div {text-align:center; }
+#checkAlert i { margin-bottom:20px; color:#0080ff; font-size:3rem; }
+
+/* SMS 전송 */
+#sendSMS { width:500px; }
+#sendSMS input { text-align:center; }
+
+/* 관리자 메인 */
+button[data-target] { padding:0; background-color:transparent; }
+div.toggleWrap { display:none; padding-top:10px; }
+div.home_content_inbox_29p { vertical-align:top; }
+
+ul.subList { margin-top:20px; padding-top:15px; border-top:1px solid #ddd; }
+ul.subList[data-dest] { display:none; }
+ul.subList li { overflow:hidden; padding:5px; border-bottom:1px dashed #ddd; line-height:1.5; }
+ul.subList li:last-child { border:0; }
+ul.subList a { float:right; }
+ul.subList a:active,
+ul.subList a:focus,
+ul.subList a:hover { color:#003b83; font-weight:700; }
+
+a.openPaymentList { display:block; margin-top:20px; color:#fff; font-size:18px; font-weight:700; line-height:40px; text-align:center; background:linear-gradient(to left, #003b83 50%, #f8b61c 50%) right; background-size:200%; transition:.2s ease-out; }
+a.openPaymentList:active,
+a.openPaymentList:focus,
+a.openPaymentList:hover { background-position:left; }
+
+a.home_content_outbox { display:block; background:linear-gradient(to left, #fff 50%, #eee 50%) right; background-size:200%; transition:.15s ease-out; }
+a.home_content_outbox:active,
+a.home_content_outbox:focus,
+a.home_content_outbox:hover { background-position:left; }
+
+/* Modal Table Wrap for Scroll */
+div.tableWrap.modal { overflow:hidden; position:relative; border: 1px solid #b4b4b4; border-top: 2px solid #222; }
+div.tableWrap.modal > div { margin-top:40px; border:0; }
+div.tableWrap.modal div > span { height:41px; border-top:1px dashed #c8c8c8; background-color:#f2f2f2; }
+div.tableWrap.modal th span { height:40px; background-color:#f2f2f2; line-height:40px; text-align:center; }
+div.tableWrap.modal th span button { padding:0; font-weight:700; line-height:40px; }
+div.tableWrap.modal td { height:41px; padding:5px; border-top:1px dashed #c8c8c8; white-space:normal; line-height:1.5; }
+
+/* 보유증명서 발급신청 */
+div.constructionPlaceSelected { display:none; margin-bottom:0; }
+div.constructionPlaceSelected > div { margin-top:45px; max-height:411px; }
+div.constructionPlaceSelected > div > span { height:47px; border-top:2px solid #9e9e9e; }
+div.constructionPlaceSelected th span { top:2px; text-align:center; }
+div.constructionPlaceSelected th:nth-child(1) span { width:10%; background-image:none; }
+div.constructionPlaceSelected th:nth-child(2) span { width:35%; }
+div.constructionPlaceSelected th:nth-child(3) span { width:15%; }
+div.constructionPlaceSelected th:nth-child(4) span { width:33%; }
+div.constructionPlaceSelected th:nth-child(5) span { width:7%; }
+
+div.constructionPlaceSelected td:nth-child(1),
+div.constructionPlaceSelected td:nth-child(4) { text-align:center; }
+
+div.constructionPlaceSelected.list { display:block; }
+div.constructionPlaceSelected.list th:nth-child(1) span { width:13%; }
+div.constructionPlaceSelected.list th:nth-child(2) span { width:46%; }
+div.constructionPlaceSelected.list th:nth-child(3) span { width:41%; }
+
+div.constructionWorkerSelected { display:none; margin-bottom:0; }
+div.constructionWorkerSelected > div { margin-top:53px; max-height:411px; }
+div.constructionWorkerSelected > div > span { top:25px; height:47px; border-top:2px solid #9e9e9e; }
+div.constructionWorkerSelected th span { top:27px; text-align:center; }
+div.constructionWorkerSelected th:nth-child(1) span { width:13%; background-image:none; }
+div.constructionWorkerSelected th:nth-child(2) span { width:40%; }
+div.constructionWorkerSelected th:nth-child(3) span { width:9%; }
+div.constructionWorkerSelected th:nth-child(4) span { width:15%; }
+div.constructionWorkerSelected th:nth-child(5) span { width:13%; }
+div.constructionWorkerSelected th:nth-child(6) span { width:10%; }
+
+div.constructionWorkerSelected.cat03 th:nth-child(1) span { width:14%; background-image:none; }
+div.constructionWorkerSelected.cat03 th:nth-child(2) span { width:45%; }
+div.constructionWorkerSelected.cat03 th:nth-child(3) span { width:16%; }
+div.constructionWorkerSelected.cat03 th:nth-child(4) span { width:14%; }
+div.constructionWorkerSelected.cat03 th:nth-child(5) span { width:11%; }
+
+div.constructionWorkerSelected table.tbl td { text-align:center; }
+div.constructionWorkerSelected table.tbl td:nth-child(2) { text-align:left; }
+
+div.constructionWorkerSelected.list { display:block; }
+div.constructionWorkerSelected.list th:nth-child(1) span { width:13%; }
+div.constructionWorkerSelected.list th:nth-child(2) span { width:45%; }
+div.constructionWorkerSelected.list th:nth-child(3) span { width:10%; }
+div.constructionWorkerSelected.list th:nth-child(4) span { width:17%; }
+div.constructionWorkerSelected.list th:nth-child(5) span { width:15%; }
+
+div.constructionWorkerGrade { display:none; margin-bottom:0; border-top:2px solid #9e9e9e; }
+div.constructionWorkerGrade > div { margin-top:87px; max-height:411px; }
+div.constructionWorkerGrade > div > span { height:88px; border-bottom:1px solid #c8c8c8; }
+div.constructionWorkerGrade th span { text-align:center; border-left:1px solid #c8c8c8; background-image:none !important; }
+div.constructionWorkerGrade tr:nth-child(1) th span { height:88px; line-height:88px; }
+div.constructionWorkerGrade tr:nth-child(1) th:nth-child(1) span { width:10%; border-left:0; }
+div.constructionWorkerGrade tr:nth-child(1) th:nth-child(2) span { width:15%; }
+div.constructionWorkerGrade tr:nth-child(1) th:nth-child(3) span { width:60%; height:44px; line-height:44px; }
+div.constructionWorkerGrade tr:nth-child(1) th:nth-child(4) span { width:15%; }
+div.constructionWorkerGrade tr:nth-child(2) th span { top:44px; width:15%; border-top:1px solid #c8c8c8; }
+div.constructionWorkerGrade table.tbl td { text-align:center; }
+
+div.constructionWorkerGrade.list { display:block; }
+
+div.constructionWorkerSelected ~ p { display:none; }
+p.info { display:none; margin-top:10px; }
+
+div.btn_wrap * { vertical-align:middle; }
+
+a.attached { float:left; clear:left; padding:5px; line-height:16px; word-break:break-all; background:linear-gradient(to left, #fff 50%, #ddd 50%) right; background-size:200%; transition:.15s ease-out; }
+a.attached + a.attached { margin-top:5px; }
+a.attached img { margin-right:5px; vertical-align:middle; }
+a.attached:active,
+a.attached:hover,
+a.attached:focus { background-position:left top; }
+
+/* 보유증명서 발급신청 > 발급대상 사업장 조회 */
+#constructionPlace { width:1000px; }
+
+div.constructionPlace > div { max-height:533px; }
+div.constructionPlace table th:nth-child(1) span { width:7%; }
+div.constructionPlace table th:nth-child(2) span { width:10%; }
+div.constructionPlace table th:nth-child(3) span { width:35%; }
+div.constructionPlace table th:nth-child(4) span { width:15%; }
+div.constructionPlace table th:nth-child(5) span { width:33%; }
+div.constructionPlace table td:nth-child(1),
+div.constructionPlace table td:nth-child(2) { text-align:center; }
+
+/* 보유증명서 발급신청 > 발급대상 근로자 조회 */
+#constructionWorker { width:1000px; }
+
+div.constructionWorker > div { max-height:533px; }
+div.constructionWorker table th:nth-child(1) span { width:7%; }
+div.constructionWorker table th:nth-child(2) span { width:12%; }
+div.constructionWorker table th:nth-child(3) span { width:42%; }
+div.constructionWorker table th:nth-child(4) span { width:10%; }
+div.constructionWorker table th:nth-child(5) span { width:15%; }
+div.constructionWorker table th:nth-child(6) span { width:14%; }
+div.constructionWorker table td { text-align:center; }
+div.constructionWorker table td:nth-child(3) { text-align:left; }
+
+/* 보유증명서 발급신청 > 특정 직종 조회 */
+#constructionJob { width:1000px; }
+#constructionJob table th,
+#constructionJob table td { text-align:center; }
+#constructionJob table thead th { border-color:#e48f34; color:#fff; background-color:#ffc107; }
+#constructionJob table tbody th { background-color:#f5f5f5; }
+#constructionJob table tbody td { cursor:pointer; }
+#constructionJob table tbody tr > *.disabled { border-color:#ccc; background-color:#ccc; cursor:default; }
+#constructionJob table tbody tr > *.checked { background-color:#fffeb4; }
+#constructionJob p { margin:10px 0 0; }
+
+input.jobList { width:calc(100% - 220px); background-color:#efefef; cursor:default; vertical-align:top; }
+
+/* 보유증명서 발급신청 > 증명서 발급동의 추가 */
+#agreementAdd { width:800px; }

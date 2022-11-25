@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.skill.common.mapper.CommonMapper">
+
+	<!-- 배너목록조회 -->
+	<select id="selectBannerList" parameterType="kr.or.cwma.admin.banner.vo.BannerVO" resultType="kr.or.cwma.admin.banner.vo.BannerVO">
+		SELECT
+			IMAGE_DC,
+			URL,
+			TRGT,
+			SE,
+			RGST_DT,
+			RGST_ID,
+			B.PARNTS_SN [fileVO.PARNTS_SN],
+			B.FILE_SN [fileVO.FILE_SN],
+			B.PARNTS_SE [fileVO.PARNTS_SE]
+		FROM BANNER A
+			LEFT JOIN ATTCH_FILE_INFO B
+				ON A.SN = B.PARNTS_SN
+				AND (
+					B.PARNTS_SE = 'ATCH0007'
+					OR B.PARNTS_SE = 'ATCH0008'
+				)
+		WHERE (
+			BGNDE &lt;= CONVERT(VARCHAR, NOW(), 23) 
+			OR ENDDE &lt;= CONVERT(VARCHAR, NOW(), 23)
+		)
+		AND (
+			BGNDE >= CONVERT(VARCHAR, NOW(), 23) 
+			OR ENDDE >= CONVERT(VARCHAR, NOW(), 23)
+		)
+		AND A.SE = #{se}
+		AND A.USE_YN = 'Y'
+		ORDER BY ORDR
+	</select>
+	
+	<!-- 팝업목록조회 -->
+	<select id="selectPopupList" resultType="kr.or.cwma.admin.popup.vo.PopupVO">
+		SELECT TOP 4
+			IMAGE_DC,
+			URL,
+			TRGT,
+			RGST_DT,
+			RGST_ID,
+			A.SE,
+			B.PARNTS_SN [fileVO.PARNTS_SN],
+			B.FILE_SN [fileVO.FILE_SN],
+			B.PARNTS_SE [fileVO.PARNTS_SE]
+		FROM POPUP A
+			LEFT JOIN ATTCH_FILE_INFO B
+				ON A.SN = B.PARNTS_SN
+				AND (
+					B.PARNTS_SE = 'ATCH0005'
+					OR B.PARNTS_SE = 'ATCH0006'
+				)
+		WHERE (
+			BGNDE &lt;= CONVERT(VARCHAR, NOW(), 23) 
+			OR ENDDE &lt;= CONVERT(VARCHAR, NOW(), 23)
+		)
+		AND (
+			BGNDE >= CONVERT(VARCHAR, NOW(), 23) 
+			OR ENDDE >= CONVERT(VARCHAR, NOW(), 23)
+		)
+		AND A.USE_YN = 'Y'
+	</select>
+	
+	<insert id="insertVisitInfo" parameterType="kr.or.cwma.skill.common.vo.CommonVO">
+		<selectKey keyProperty="visitInfoId" resultType="int" order="BEFORE">
+			SELECT IFNULL(MAX(VISIT_INFO_ID), 0) +1 VISIT_INFO_ID FROM VISIT_INFO
+		</selectKey>
+		INSERT INTO VISIT_INFO(
+			VISIT_INFO_ID, VISIT_IP, VISIT_DT
+		)VALUES(
+			#{visitInfoId}, #{visitIp}, NOW()
+		)
+	</insert>
+	
+	<select id="selectCountVisitInfo" parameterType="kr.or.cwma.skill.common.vo.CommonVO" resultType="int">
+		SELECT COUNT(*)
+		  FROM VISIT_INFO
+		 WHERE VISIT_DT BETWEEN #{prevTime} AND #{nowTime}
+		   AND VISIT_IP = #{visitIp}
+	</select>
+	
+	<select id="selectCountVisit" parameterType="kr.or.cwma.admin.common.vo.CommonVO" resultType="int">
+		SELECT COUNT(*)
+		  FROM VISIT_INFO
+		 WHERE 1=1
+		   <if test='prevTime != null and prevTime != ""'>
+		   AND VISIT_DT BETWEEN #{prevTime} AND #{nowTime}
+		   </if>
+	</select>
+	
+	<select id="selectCountQna" resultType="int">
+		SELECT COUNT(*)
+		  FROM BBS
+		 WHERE SE = 'BSSE0003'
+	</select>
+	
+</mapper>

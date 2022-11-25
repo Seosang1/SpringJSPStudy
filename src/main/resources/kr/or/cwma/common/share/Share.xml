@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.common.mapper.ShareMapper">
+
+	<!-- 산인공 자격 등록-->
+	<insert id="insertCntcHrdLicense" parameterType="kr.or.cwma.common.vo.LcnsVO">
+		INSERT INTO CNTC_HRD_LICENSE(
+			NM, IHIDNUM, CRQFC_NO, CRQFC_KND, CRQFC_CD, CRQFC_NM, CRQFC_ACQDT, CRQFC_GRAD, RGST_DT
+		) VALUES (
+			#{nm}, SUBSTRING(#{ihidnum}, 1, 6)+'-'+SUBSTRING(#{ihidnum}, 7, 14), #{crqfcNo}, '국가기술자격', #{crqfcCd}, #{crqfcNm}, #{crqfcAcqdt},
+			(
+				SELECT
+					CASE 
+						WHEN #{crqfcNm} LIKE '%기능사%' THEN '기능사' 
+						WHEN #{crqfcNm} LIKE '%기능장%' THEN '기능장' 
+						WHEN #{crqfcNm} LIKE '%산업기사%' THEN '산업기사' 
+					END
+				FROM JSSFC_RELATE
+				WHERE CNTC_JSSFC_CD = #{crqfcCd}
+				AND CNTC_SE_CD = 'JRIC0010'
+			), GETDATE()
+		);
+		
+		INSERT INTO CNTC_HRD_LICENSE_SN(SN, IHIDNUM, CRQFC_CD, CRQFC_NO)
+		SELECT RN, IHIDNUM, CRQFC_CD, CRQFC_NO
+		FROM (
+			SELECT
+				B.MAX_SN + ROW_NUMBER() OVER(ORDER BY A.IHIDNUM, A.CRQFC_CD, A.CRQFC_NO) RN,
+				A.IHIDNUM, A.CRQFC_CD, A.CRQFC_NO
+			FROM CNTC_HRD_LICENSE A
+				LEFT JOIN CNTC_HRD_LICENSE_SN A1
+					ON A.IHIDNUM = A1.IHIDNUM
+					AND A.CRQFC_CD = A1.CRQFC_CD
+					AND A.CRQFC_NO = A1.CRQFC_NO
+				, (
+					SELECT ISNULL(MAX(SN), 0) MAX_SN
+					FROM CNTC_HRD_LICENSE_SN
+				) B
+			WHERE A1.IHIDNUM IS NULL
+			AND A.IHIDNUM = #{ihidnum}
+		) A;
+	</insert>
+	
+	<!-- 산인공 자격 삭제-->
+	<delete id="deleteCntcHrdLicense" parameterType="kr.or.cwma.common.vo.LcnsVO">
+		DELETE FROM CNTC_HRD_LICENSE
+		WHERE IHIDNUM = SUBSTRING(#{ihidnum}, 1, 6)+'-'+SUBSTRING(#{ihidnum}, 7, 14)
+	</delete>
+	
+	<!-- 한고원 교육 등록-->
+	<insert id="insertCntcKeisEdu" parameterType="kr.or.cwma.common.vo.EduVO">
+		MERGE INTO CNTC_KEIS_EDU A
+			USING (
+				SELECT
+					SUBSTRING(#{ihidnum}, 1, 6)+'-'+SUBSTRING(#{ihidnum}, 7, 14) IHIDNUM,
+					#{crseCd} CRSE_CD, 
+					#{bgnde} BGNDE, 
+					#{nm} NM, 
+					#{insttNm} INSTT_NM, 
+					#{tyCd} TY_CD, 
+					#{tyNm} TY_NM, 
+					#{crseTme} CRSE_TME,
+					#{crseNm} CRSE_NM,
+					#{complAt} COMPL_AT,
+					#{traingTime} TRAING_TIME, 
+					#{rlTraingTime} RL_TRAING_TIME,
+					#{endde} ENDDE,
+					#{ncsCd} NCS_CD,
+					#{kecoCd} KECO_CD,
+					#{jssfcCd} JSSFC_CD,
+					#{nationPdJssfcCd} NATION_PD_JSSFC_CD,
+					GETDATE() RGST_DT
+			) B
+				ON A.IHIDNUM = B.IHIDNUM
+				AND A.CRSE_CD = B.CRSE_CD
+				AND A.BGNDE = B.BGNDE
+			WHEN NOT MATCHED THEN
+				INSERT (
+					IHIDNUM, CRSE_CD, BGNDE, NM, INSTT_NM, TY_CD, TY_NM, CRSE_TME, CRSE_NM, COMPL_AT, TRAING_TIME,
+					RL_TRAING_TIME, ENDDE, NCS_CD, KECO_CD, JSSFC_CD, NATION_PD_JSSFC_CD, RGST_DT
+				) VALUES (
+					B.IHIDNUM, B.CRSE_CD, B.BGNDE, B.NM, B.INSTT_NM, B.TY_CD, B.TY_NM, B.CRSE_TME, B.CRSE_NM, B.COMPL_AT, B.TRAING_TIME,
+					B.RL_TRAING_TIME, B.ENDDE, B.NCS_CD, B.KECO_CD, B.JSSFC_CD, B.NATION_PD_JSSFC_CD, B.RGST_DT
+				)
+			WHEN MATCHED THEN
+				UPDATE SET
+					NM = B.NM,
+					INSTT_NM = B.INSTT_NM, 
+					TY_CD = B.TY_CD, 
+					TY_NM = B.TY_NM,
+					CRSE_TME = B.CRSE_TME, 
+					CRSE_NM = B.CRSE_NM,
+					COMPL_AT = B.COMPL_AT,
+					TRAING_TIME = B.TRAING_TIME,
+					RL_TRAING_TIME = B.RL_TRAING_TIME,
+					ENDDE = B.ENDDE,
+					NCS_CD = B.NCS_CD,
+					KECO_CD = B.KECO_CD,
+					JSSFC_CD = B.JSSFC_CD,
+					NATION_PD_JSSFC_CD = B.NATION_PD_JSSFC_CD,
+					RGST_DT = B.RGST_DT;
+
+		INSERT INTO CNTC_KEIS_EDU_SN(SN, IHIDNUM, CRSE_CD, BGNDE)
+		SELECT RN, IHIDNUM, CRSE_CD, BGNDE
+		FROM (
+			SELECT
+				B.MAX_SN + ROW_NUMBER() OVER(ORDER BY A.IHIDNUM) RN,
+				A.IHIDNUM, A.CRSE_CD, A.BGNDE
+			FROM CNTC_KEIS_EDU A
+				LEFT JOIN CNTC_KEIS_EDU_SN A1
+					ON A.IHIDNUM = A1.IHIDNUM
+					AND A.CRSE_CD = A1.CRSE_CD
+					AND A.BGNDE = A1.BGNDE
+				, (
+					SELECT ISNULL(MAX(SN), 0) MAX_SN
+					FROM CNTC_KEIS_EDU_SN
+				) B
+			WHERE A1.IHIDNUM IS NULL
+			AND A.IHIDNUM = SUBSTRING(#{ihidnum}, 1, 6)+'-'+SUBSTRING(#{ihidnum}, 7, 14)
+		) A;
+	</insert>
+
+	<!-- 한고원 교육 삭제-->
+	<delete id="deleteCntcKeisEdu" parameterType="kr.or.cwma.common.vo.EduVO">
+		DELETE FROM CNTC_KEIS_EDU
+		WHERE IHIDNUM = SUBSTRING(#{ihidnum}, 1, 6)+'-'+SUBSTRING(#{ihidnum}, 7, 14)
+	</delete>
+	
+</mapper>

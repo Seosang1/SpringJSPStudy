@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.cmmnCd.mapper.CmmnCdMapper">
+	<sql id="listWhere">
+		<if test='cdId != null and cdId != ""'>
+			AND CD_ID LIKE CONCAT(#{cdId}, '%')
+		</if>
+		<if test='parntsCdId != null and parntsCdId != ""'>
+			AND PARNTS_CD_ID = #{parntsCdId}
+		</if>
+		<if test='cdNm != null and cdNm != ""'>
+			AND CD_NM LIKE CONCAT('%',#{cdNm},'%')
+		</if>
+		<if test='searchWord != null and searchWord != ""'>
+			<if test='searchKey == null or searchKey == ""'>
+				AND (
+					CD_ID LIKE CONCAT(#{searchWord}, '%')
+					OR PARNTS_CD_ID = #{searchWord}
+					OR CD_NM LIKE CONCAT('%',#{searchWord},'%')
+					OR CD_DC LIKE CONCAT('%',#{searchWord},'%')
+				)
+			</if>
+			<if test='searchKey != null and searchKey == "cdId"'>
+				AND CD_ID LIKE CONCAT(#{searchWord}, '%')
+			</if>
+			<if test='searchKey != null and searchKey == "parntsCdId"'>
+				AND PARNTS_CD_ID = #{searchWord}
+			</if>
+			<if test='searchKey != null and searchKey == "cdNm"'>
+				AND CD_NM LIKE CONCAT('%',#{searchWord},'%')
+			</if>
+			<if test='searchKey != null and searchKey == "cdDc"'>
+				AND CD_DC LIKE CONCAT('%',#{searchWord},'%')
+			</if>
+		</if>
+		AND G_PARNTS_CD_ID = 'CODE0001'
+	</sql>
+	
+	<select id="selectCmmnCdListCnt" parameterType="kr.or.cwma.admin.cmmnCd.vo.CmmnCdVO" resultType="int">
+		SELECT COUNT(1)
+		FROM CMMN_CD
+		WHERE 1 = 1 
+		<include refid="listWhere" />
+	</select>
+
+	<select id="selectCmmnCdList" parameterType="kr.or.cwma.admin.cmmnCd.vo.CmmnCdVO" resultType="kr.or.cwma.admin.cmmnCd.vo.CmmnCdVO">
+		SELECT *  
+		FROM( 
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY PARNTS_CD_ID, SORT, CD_ID) AS ROWNUM, 
+				CD_ID,
+				PARNTS_CD_ID,
+				CD_NM,
+				CD_DC,
+				SORT
+			FROM CMMN_CD
+			WHERE 1 = 1 
+			<include refid="listWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+
+	<select id="selectCmmnCdView" parameterType="kr.or.cwma.admin.cmmnCd.vo.CmmnCdVO" resultType="kr.or.cwma.admin.cmmnCd.vo.CmmnCdVO">
+		SELECT 
+			CD_ID,
+			PARNTS_CD_ID,
+			CD_NM,
+			CD_DC,
+			SORT
+		FROM CMMN_CD
+		WHERE CD_ID = #{cdId}
+		  AND G_PARNTS_CD_ID = 'CODE0001'
+	</select>
+
+	<insert id="insertCmmnCd" parameterType="kr.or.cwma.admin.cmmnCd.vo.CmmnCdVO">
+		INSERT INTO CMMN_CD(
+			CD_ID,
+			PARNTS_CD_ID,
+			CD_NM,
+			CD_DC,
+			SORT,
+			G_PARNTS_CD_ID
+		)VALUES(
+			#{cdId}, #{parntsCdId}, #{cdNm}, #{cdDc}, #{sort}, #{gParntsCdId}
+		)
+	</insert>
+
+	<update id="updateCmmnCd" parameterType="kr.or.cwma.admin.cmmnCd.vo.CmmnCdVO">
+		UPDATE CMMN_CD
+		SET CD_NM = #{cdNm}
+			,CD_DC = #{cdDc}
+			,SORT = #{sort}
+		WHERE CD_ID = #{cdId}
+		  AND G_PARNTS_CD_ID = 'CODE0001'
+	</update>
+
+	<delete id="deleteCmmnCd" parameterType="kr.or.cwma.admin.cmmnCd.vo.CmmnCdVO">
+		DELETE FROM CMMN_CD
+		WHERE CD_ID = #{cdId}
+		  AND G_PARNTS_CD_ID = 'CODE0001'
+	</delete>
+
+</mapper>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%X{ip} %d{HH:mm:ss} %-5level %logger{0} - %msg%n</pattern>
+		</encoder>
+    </appender>
+    
+	<appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>C:/eclipse/workspace/skill_level_evaluation/src/main/webapp/WEB-INF/logs/info.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>C:/eclipse/workspace/skill_level_evaluation/src/main/webapp/WEB-INF/logs/info/%d{yyyy-MM}/%d{yyyy-MM-dd}.log</fileNamePattern>
+			<maxHistory>10</maxHistory>
+		</rollingPolicy>
+		<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+		    <maxFileSize>50MB</maxFileSize>
+		</timeBasedFileNamingAndTriggeringPolicy>
+		<encoder>
+			<pattern>%d{HH:mm:ss} %-5level %logger{10} - %msg%n %ex</pattern>
+		</encoder>
+	</appender>
+    
+	<appender name="error" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>C:/eclipse/workspace/skill_level_evaluation/src/main/webapp/WEB-INF/logs/error.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>C:/eclipse/workspace/skill_level_evaluation/src/main/webapp/WEB-INF/logs/error/%d{yyyy-MM}/%d{yyyy-MM-dd}.log</fileNamePattern>
+			<maxHistory>10</maxHistory>
+		</rollingPolicy>
+		<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+		    <maxFileSize>50MB</maxFileSize>
+		</timeBasedFileNamingAndTriggeringPolicy>
+		<encoder>
+			<pattern>%d{HH:mm:ss} %-5level %logger{10} - %msg%n %ex</pattern>
+		</encoder>
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>ERROR</level>
+			<onMatch>NEUTRAL</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+	</appender>
+
+	<logger name="jdbc.resultsettable" level="error" />
+	<logger name="jdbc.sqlonly" level="info" />
+	<logger name="jdbc.resultset" level="warn" />
+	<logger name="jdbc.audit" level="warn" />
+	<logger name="jdbc.connection" level="warn" />
+	<logger name="jdbc.sqltiming" level="warn" />
+	<logger name="org.springframework" level="debug"/>
+	<logger name="org.springframework.web.servlet.mvc.method.annotation.HttpEntityMethodProcessor" level="info"/>
+	<logger name="kr.or" level="debug" />
+
+    <root level="debug">
+<!--         <appender-ref ref="file"/> -->
+        <appender-ref ref="error"/>
+        <appender-ref ref="console"/>
+    </root>
+    
+</configuration>

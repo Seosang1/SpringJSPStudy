@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.admin.mapper.AdminMapper">
+	<sql id="listWhere">
+		<if test='userId != null and userId != ""'>
+			AND A.USER_ID LIKE CONCAT(#{userId}, '%')
+		</if>
+		<if test='deptCd != null and deptCd != ""'>
+			AND A.DEPT_CD LIKE CONCAT(#{deptCd}, '%')
+		</if>
+		<if test='phoneNum != null and phoneNum != ""'>
+			AND A.PHONE_NUM LIKE CONCAT(#{phoneNum}, '%')
+		</if>
+		<if test='userName != null and userName != ""'>
+			AND A.USER_NAME LIKE CONCAT(#{userName}, '%')
+		</if>
+	</sql>
+	
+	<select id="selectAdminListCnt" parameterType="kr.or.cwma.admin.admin.vo.AdminVO" resultType="int">
+		SELECT COUNT(1)
+		FROM ADMIN_INFO A
+		WHERE 1 = 1 
+		<include refid="listWhere" />
+	</select>
+
+	<select id="selectAdminList" parameterType="kr.or.cwma.admin.admin.vo.AdminVO" resultType="kr.or.cwma.admin.admin.vo.AdminVO">
+		SELECT *  
+		FROM( 
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY A.USER_ID) AS ROWNUM, 
+				A.USER_ID,
+				A.USER_NAME,
+				A.DEPT_CD,
+				A.EMAIL,
+				A.RGST_DT,
+				A.UPD_DT,
+				A.PHONE_NUM,
+				A.COMP_PHONE_NUM,
+				B.CD_NM AS DEPT_NAME
+			FROM ADMIN_INFO A
+		   INNER JOIN CMMN_CD B ON A.DEPT_CD = B.CD_ID AND B.G_PARNTS_CD_ID = 'CODE0001'
+			WHERE 1 = 1 
+			<include refid="listWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+
+	<select id="selectAdminView" parameterType="kr.or.cwma.admin.admin.vo.AdminVO" resultType="kr.or.cwma.admin.admin.vo.AdminVO">
+		SELECT 
+			A.USER_ID,
+			A.USER_NAME,
+			A.DEPT_CD,
+			A.EMAIL,
+			A.RGST_DT,
+			A.UPD_DT,
+			A.PHONE_NUM,
+			A.COMP_PHONE_NUM,
+			B.CD_NM AS DEPT_NAME
+		FROM ADMIN_INFO A
+	   INNER JOIN CMMN_CD B ON A.DEPT_CD = B.CD_ID AND B.G_PARNTS_CD_ID = 'CODE0001'
+		WHERE A.USER_ID = #{userId}
+	</select>
+
+	<insert id="insertAdmin" parameterType="kr.or.cwma.admin.admin.vo.AdminVO">
+		INSERT INTO ADMIN_INFO(
+			USER_ID,
+			USER_NAME,
+			DEPT_CD,
+			EMAIL,
+			RGST_DT,
+			UPD_DT,
+			PHONE_NUM,
+			COMP_PHONE_NUM,
+			PASSWORD
+		)VALUES(
+			#{userId}, #{userName}, #{deptCd}, #{email}, GETDATE(), GETDATE(), #{phoneNum}, #{compPhoneNum}, #{password}
+		)
+	</insert>
+
+	<update id="updateAdmin" parameterType="kr.or.cwma.admin.admin.vo.AdminVO">
+		UPDATE ADMIN_INFO
+			SET	USER_NAME = #{userName}
+			,DEPT_CD = #{deptCd}
+			,EMAIL = #{email}
+			,UPD_DT = GETDATE()
+			,PHONE_NUM = #{phoneNum}
+			,COMP_PHONE_NUM = #{compPhoneNum}
+			,PASSWORD = #{password}
+		WHERE USER_ID = #{userId}
+	</update>
+
+	<delete id="deleteAdmin" parameterType="kr.or.cwma.admin.admin.vo.AdminVO">
+		DELETE FROM ADMIN_INFO
+		WHERE USER_ID = #{userId}
+	</delete>
+
+</mapper>

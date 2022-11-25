@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.skill.customer.mapper.CustomerMapper">
+
+	<!-- 설문 참여 가능 여부 조회 -->
+	<select id="selectSurveyStatus" parameterType="kr.or.cwma.admin.survey.vo.SurveyInfoVO" resultType="kr.or.cwma.admin.survey.vo.SurveyInfoVO">
+		SELECT 
+			(
+				CASE
+					WHEN BGNDE > CONVERT(VARCHAR, GETDATE(), 23) THEN 'N'
+					WHEN BGNDE &lt;= CONVERT(VARCHAR, GETDATE(), 23) AND ENDDE >= CONVERT(VARCHAR, GETDATE(), 23) THEN 'Y'
+					ELSE 'E'
+				END 
+			) DISPLAY_AT, 
+			B.ANSWRR_ID CHK_ID
+		FROM SURVEY_INFO A
+			LEFT JOIN SURVEY_ANSWRR B
+				ON A.SURVEY_SN = B.SURVEY_SN
+				AND B.ANSWRR_ID = #{chkId}
+		WHERE A.SURVEY_SN = #{surveySn}
+	</select>
+	
+	<!-- 설문 답변자 등록 -->
+	<insert id="insertSurveyAnswrr" parameterType="kr.or.cwma.skill.customer.vo.SurveyAnswrrVO">
+		<selectKey keyProperty="answrrSn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(ANSWRR_SN), 0) +1 answrrSn FROM SURVEY_ANSWRR
+		</selectKey>
+		INSERT INTO SURVEY_ANSWRR(
+			ANSWRR_SN, SURVEY_SN, ANSWRR_ID, ANSWRR_DT
+		)VALUES(
+			#{answrrSn}, #{surveySn}, #{answrrId}, GETDATE()
+		)
+	</insert>
+	
+	<!-- 설문 답변 등록 -->
+	<insert id="insertSurveyAnswer" parameterType="kr.or.cwma.skill.customer.vo.SurveyAnswerVO">
+		INSERT INTO SURVEY_ANSWER(
+			ANSWRR_SN, QESITM_SN, ANSWER, ETC_ANSWER
+		)VALUES(
+			#{answrrSn}, #{qesitmSn}, #{answer}, #{etcAnswer}
+		)
+	</insert>
+</mapper>

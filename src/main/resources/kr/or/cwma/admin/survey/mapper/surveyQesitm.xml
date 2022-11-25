@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.survey.mapper.SurveyQesitmMapper">
+
+	<!-- 등록 -->
+	<insert id="insertSurveyQesitm" parameterType="kr.or.cwma.admin.survey.vo.SurveyQesitmVO">
+		<selectKey keyProperty="qesitmSn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(QESITM_SN), 0) +1 qesitmSn FROM SURVEY_QESITM
+		</selectKey>
+		INSERT INTO SURVEY_QESITM(
+			QESITM_SN, SURVEY_SN, SJ, CN, TY, PAGE_NO
+		)VALUES(
+			#{qesitmSn}, #{surveySn}, #{sj}, #{cn}, #{ty}, #{pageNo}
+		)
+	</insert>
+
+	<!-- 수정 -->
+	<update id="updateSurveyQesitm" parameterType="kr.or.cwma.admin.survey.vo.SurveyQesitmVO">
+		UPDATE SURVEY_QESITM
+		SET SJ = #{sj}
+			,CN = #{cn}
+			,TY = #{ty}
+			,PAGE_NO = #{pageNo}
+		WHERE QESITM_SN = #{qesitmSn}
+		AND SURVEY_SN = #{surveySn}
+	</update>
+
+	<!-- 삭제 -->
+	<delete id="deleteSurveyQesitm" parameterType="kr.or.cwma.admin.survey.vo.SurveyInfoVO">
+		DELETE FROM SURVEY_QESITM
+		WHERE SURVEY_SN = #{surveySn}
+		<if test="itmVO != null">
+			AND QESITM_SN NOT IN
+			<foreach collection="itmVO" open="(" close=")" separator="," item="itmVO">
+				#{itmVO.qesitmSn}
+			</foreach>
+		</if>
+	</delete>
+	
+	<!-- 목록조회 -->
+	<select id="selectSurveyQesitmList" parameterType="kr.or.cwma.admin.survey.vo.SurveyInfoVO" resultType="kr.or.cwma.admin.survey.vo.SurveyQesitmVO">
+		SELECT 
+			QESITM_SN,
+			SURVEY_SN,
+			SJ,
+			CN,
+			TY,
+			PAGE_NO
+		FROM SURVEY_QESITM
+		WHERE SURVEY_SN = #{surveySn}
+		<if test="itmVO != null">
+			AND QESITM_SN NOT IN
+			<foreach collection="itmVO" open="(" close=")" separator="," item="itmVO">
+				#{itmVO.qesitmSn}
+			</foreach>
+		</if>
+		ORDER BY QESITM_SN
+	</select>
+	
+</mapper>

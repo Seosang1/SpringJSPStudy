@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.indvdlinfoAccesLog.mapper.IndvdlinfoAccesLogMapper">
+
+	<sql id="listWhere">
+		<if test='accesId != null and accesId != ""'>
+			AND ACCES_ID = #{accesId}
+		</if>
+		<if test='bgnDt != null and bgnDt != ""'>
+			AND ACCES_DT >= #{bgnDt}
+		</if>
+		<if test='endDt != null and endDt != ""'>
+			AND ACCES_DT &lt;= CONCAT(#{endDt}, ' 23:59:59')
+		</if>
+		<if test='ip != null and ip != ""'>
+			AND IP = #{ip}
+		</if>
+		<if test='trgetId != null and trgetId != ""'>
+			AND TRGET_ID = #{trgetId}
+		</if>
+		<if test='nwDdcerNo != null and nwDdcerNo != ""'>
+			AND NW_DDCER_NO = #{nwDdcerNo}
+		</if>
+		<if test='se != null and se != ""'>
+			AND A.SE = #{se}
+		</if>
+		<if test='menuSn > 0'>
+			AND A.MENU_SN = #{menuSn}
+		</if>
+	</sql>
+	
+	<!-- 사용메뉴목록조회 -->
+	<select id="selectMenuList" resultType="kr.or.cwma.admin.menuInfo.vo.MenuInfoVO">
+		SELECT MENU_SN, MENU_DC
+		FROM MENU_INFO
+		WHERE URL IN (
+			'/admin/careerDeclare/careerDeclareList.do',
+			'/admin/userInfo/personalForm.do',
+			'/admin/crtfIssu/crtfIssuList.do',
+			'/admin/crtfIssu/crtfIssuReqList.do'
+		)
+	</select>
+	
+	<!-- 목록갯수조회 -->
+	<select id="selectIndvdlinfoAccesLogListCnt" parameterType="kr.or.cwma.admin.indvdlinfoAccesLog.vo.IndvdlinfoAccesLogVO" resultType="int">
+		SELECT COUNT(1)
+		FROM INDVDLINFO_ACCES_LOG(NOLOCK)
+		WHERE 1 = 1 
+		<include refid="listWhere" />
+	</select>
+
+	<!-- 목록조회 -->
+	<select id="selectIndvdlinfoAccesLogList" parameterType="kr.or.cwma.admin.indvdlinfoAccesLog.vo.IndvdlinfoAccesLogVO" resultType="kr.or.cwma.admin.indvdlinfoAccesLog.vo.IndvdlinfoAccesLogVO">
+		SELECT *  
+		FROM( 
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY SN DESC) AS ROWNUM, 
+				SN,
+				ACCES_ID,
+				A1.USER_NAME [userVO.USER_NAME],
+				A1.BRFFC_NM [userVO.BRFFC_NM],
+				ACCES_DT,
+				IP,
+				TRGET_ID,
+				NW_DDCER_NO,
+				SE,
+				B.CD_NM SE_NM,
+				A.MENU_SN,
+				A2.MENU_DC MENU_NM
+			FROM INDVDLINFO_ACCES_LOG(NOLOCK) A
+				INNER JOIN epdbs_link.sso.dbo.V_USER A1
+					ON A.ACCES_ID = A1.USER_ID
+				INNER JOIN MENU_INFO A2
+					ON A.MENU_SN = A2.MENU_SN
+				INNER JOIN CMMN_CD B
+					ON A.SE = B.CD_ID
+			WHERE 1 = 1
+			<include refid="listWhere" /> 
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+
+	<!-- 엑셀목록조회 -->
+	<select id="selectIndvdlinfoAccesLogListXls" parameterType="kr.or.cwma.admin.indvdlinfoAccesLog.vo.IndvdlinfoAccesLogVO" resultType="java.util.LinkedHashMap">
+		SELECT 
+			SN "일련번호",
+			ACCES_ID "취급자 ID",
+			A1.USER_NAME "취급자명",
+			A1.BRFFC_NM "취급자 부서",
+			ACCES_DT "접근일시",
+			IP "아이피",
+			TRGET_ID "대상ID",
+			NW_DDCER_NO "신피공제자번호",
+			B.CD_NM "구분",
+			A2.MENU_NM "접근메뉴명"
+		FROM INDVDLINFO_ACCES_LOG(NOLOCK) A
+			INNER JOIN epdbs_link.sso.dbo.V_USER A1
+				ON A.ACCES_ID = A1.USER_ID
+			INNER JOIN MENU_INFO A2
+				ON A.MENU_SN = A2.MENU_SN
+			INNER JOIN CMMN_CD B
+				ON A.SE = B.CD_ID
+		WHERE 1 = 1 
+		<include refid="listWhere" />
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectIndvdlinfoAccesLogView" parameterType="kr.or.cwma.admin.indvdlinfoAccesLog.vo.IndvdlinfoAccesLogVO" resultType="kr.or.cwma.admin.indvdlinfoAccesLog.vo.IndvdlinfoAccesLogVO">
+		SELECT 
+			SN,
+			ACCES_ID,
+			ACCES_DT,
+			IP,
+			TRGET_ID,
+			NW_DDCER_NO,
+			SE,
+			MENU_SN
+		FROM INDVDLINFO_ACCES_LOG(NOLOCK)
+		WHERE SN = #{sn}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertIndvdlinfoAccesLog" parameterType="kr.or.cwma.admin.indvdlinfoAccesLog.vo.IndvdlinfoAccesLogVO">
+		<selectKey keyProperty="sn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM INDVDLINFO_ACCES_LOG
+		</selectKey>
+		INSERT INTO INDVDLINFO_ACCES_LOG(
+			SN, ACCES_ID, ACCES_DT, IP, TRGET_ID, 
+			NW_DDCER_NO, SE, MENU_SN
+		)VALUES(
+			#{sn}, #{accesId}, GETDATE(), #{ip}, (SELECT TOP 1 USER_ID FROM USER_INFO WHERE IHIDNUM = #{ihidnum}), 
+			(SELECT TOP 1 NW_DDCER_NO FROM CWMA_DDCER WHERE IHIDNUM = #{ihidnum}), #{se}, (SELECT TOP 1 MENU_SN FROM MENU_INFO WHERE URL = #{url} ORDER BY MENU_SN DESC)
+		)
+	</insert>
+	
+</mapper>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.common.mapper.AttchFileInfoMapper">
+
+	<!-- 목록조회 -->
+	<select id="selectAttchFileInfoList" parameterType="kr.or.cwma.common.vo.AttchFileInfoVO" resultType="kr.or.cwma.common.vo.AttchFileInfoVO">
+		SELECT
+			FILE_SN,
+			PARNTS_SN,
+			PARNTS_SE,
+			ORGINL_FILE_NM,
+			FILE_NM,
+			REPLACE(PATH, '\', '/') PATH,
+			EXTSN,
+			SIZE
+		FROM ATTCH_FILE_INFO
+		WHERE 1=1
+		<if test='parntsSe != null and parntsSe != ""'>
+			AND PARNTS_SE = #{parntsSe}
+		</if>
+		<if test='parntsSn != null and parntsSn != ""'>
+			AND PARNTS_SN = #{parntsSn}
+		</if>
+		<if test='fileSn != null and fileSn != ""'>
+			AND FILE_SN = #{fileSn}
+		</if>
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectAttchFileInfoView" parameterType="kr.or.cwma.common.vo.AttchFileInfoVO" resultType="kr.or.cwma.common.vo.AttchFileInfoVO">
+		SELECT
+			FILE_SN,
+			PARNTS_SN,
+			PARNTS_SE,
+			ORGINL_FILE_NM,
+			FILE_NM,
+			REPLACE(PATH, '\', '/') PATH,
+			EXTSN,
+			SIZE
+		FROM ATTCH_FILE_INFO
+		WHERE FILE_SN = #{fileSn}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertAttchFileInfo" parameterType="kr.or.cwma.common.vo.AttchFileInfoVO">
+		<selectKey keyProperty="fileSn" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(FILE_SN), 0) +1 fileSn FROM ATTCH_FILE_INFO
+		</selectKey>
+		INSERT INTO ATTCH_FILE_INFO(
+			FILE_SN, PARNTS_SN, PARNTS_SE, ORGINL_FILE_NM, FILE_NM, PATH, EXTSN, SIZE
+		)VALUES(
+			#{fileSn}, #{parntsSn}, #{parntsSe}, #{orginlFileNm}, #{fileNm}, #{path}, #{extsn}, #{size}
+		)
+	</insert>
+
+	<!-- 삭제 -->
+	<delete id="deleteAttchFileInfo" parameterType="kr.or.cwma.common.vo.AttchFileInfoVO">
+		DELETE FROM ATTCH_FILE_INFO
+		WHERE FILE_SN = #{fileSn}
+		AND PARNTS_SN = #{parntsSn}
+		AND PARNTS_SE = #{parntsSe}
+	</delete>
+
+</mapper>

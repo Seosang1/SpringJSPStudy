@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.menuInfo.mapper.MenuInfoMapper">
+
+	<!-- 목록조회 -->
+	<select id="selectMenuInfoList" parameterType="kr.or.cwma.admin.menuInfo.vo.MenuInfoVO" resultType="kr.or.cwma.admin.menuInfo.vo.MenuInfoVO">
+		WITH MENU_INFO_CTE AS (
+			SELECT
+				A.*,
+				CONVERT(VARCHAR(255), MENU_SN) GRP,
+				CONVERT(VARCHAR(255), MENU_ORDR) SORT,
+				CONVERT(VARCHAR(255), MENU_NM) DEPTH_FULLNAME,
+				1 DEPTH
+			FROM MENU_INFO A
+			WHERE UPPER_MENU_SN = 0
+				UNION ALL
+			SELECT
+				A.*, CONVERT(VARCHAR(255), CONVERT(NVARCHAR, B.MENU_SN)) GRP
+				, CONVERT(VARCHAR(255), CONVERT(NVARCHAR, B.SORT) + ' > ' + RIGHT('0'+CONVERT(VARCHAR(255), A.MENU_ORDR), 2)) SORT
+				, CONVERT(VARCHAR(255), CONVERT(NVARCHAR,B.DEPTH_FULLNAME) + ' > ' + CONVERT(VARCHAR(255), A.MENU_NM)) DEPTH_FULLNAME
+				, B.DEPTH+1 DEPTH
+			FROM MENU_INFO A, MENU_INFO_CTE B
+			WHERE A.UPPER_MENU_SN = B.MENU_SN
+		)
+		SELECT
+			*
+		FROM MENU_INFO_CTE
+		ORDER BY SORT
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectMenuInfoView" parameterType="kr.or.cwma.admin.menuInfo.vo.MenuInfoVO" resultType="kr.or.cwma.admin.menuInfo.vo.MenuInfoVO">
+		SELECT 
+			MENU_SN,
+			UPPER_MENU_SN,
+			MENU_NM,
+			URL,
+			MENU_ORDR,
+			DISPLAY_AT,
+			USE_AT,
+			MENU_DC,
+			CSS,
+			RGST_DT,
+			CHG_DT,
+			RGST_ID,
+			CHG_ID,
+			BASS_AUTHOR_AT
+		FROM MENU_INFO
+		WHERE MENU_SN = #{menuSn}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertMenuInfo" parameterType="kr.or.cwma.admin.menuInfo.vo.MenuInfoVO">
+		<selectKey keyProperty="menuSn" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(MENU_SN), 0) +1 menuSn FROM MENU_INFO
+		</selectKey>
+		INSERT INTO MENU_INFO(
+			MENU_SN, UPPER_MENU_SN, MENU_NM, URL, MENU_ORDR,
+			DISPLAY_AT, USE_AT, MENU_DC, CSS, RGST_DT, RGST_ID, BASS_AUTHOR_AT
+		)VALUES(
+			#{menuSn}, #{upperMenuSn}, #{menuNm}, #{url}, (SELECT ISNULL(MAX(MENU_ORDR), 1) FROM MENU_INFO WHERE UPPER_MENU_SN = #{upperMenuSn}), 
+			#{displayAt}, #{useAt}, #{menuDc}, #{css}, GETDATE(), #{rgstId}, #{bassAuthorAt}
+		)
+	</insert>
+
+	<!-- 수정 -->
+	<update id="updateMenuInfo" parameterType="kr.or.cwma.admin.menuInfo.vo.MenuInfoVO">
+		UPDATE MENU_INFO
+		SET UPPER_MENU_SN = #{upperMenuSn}
+			,MENU_NM = #{menuNm}
+			,URL = #{url}
+			,DISPLAY_AT = #{displayAt}
+			,USE_AT = #{useAt}
+			,MENU_DC = #{menuDc}
+			,CSS = #{css}
+			,CHG_DT = #{chgDt}
+			,CHG_ID = #{chgId}
+			,BASS_AUTHOR_AT = #{bassAuthorAt}
+		WHERE MENU_SN = #{menuSn}
+	</update>
+
+	<!-- 삭제 -->
+	<delete id="deleteMenuInfo" parameterType="kr.or.cwma.admin.menuInfo.vo.MenuInfoVO">
+		DELETE FROM MENU_INFO
+		WHERE MENU_SN = #{menuSn}
+	</delete>
+
+	<!-- 메뉴관리 순서변경 -->
+	<update id="updateMenuInfoOrdr" parameterType="kr.or.cwma.admin.menuInfo.vo.MenuInfoVO">
+		UPDATE MENU_INFO
+		SET MENU_ORDR = #{menuOrdr},
+			UPPER_MENU_SN = #{upperMenuSn}
+		WHERE MENU_SN = #{menuSn}
+	</update>
+
+</mapper>

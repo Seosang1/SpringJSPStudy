@@ -1,0 +1,1001 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.holdCrtf.mapper.HoldCrtfMapper">
+
+	<resultMap type="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" id="viewMap" autoMapping="true">
+		<id property="sn" column="SN"/>
+		<collection property="jssfcVO" ofType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfJssfcVO" autoMapping="true" columnPrefix="jssfcVO.">
+			<id property="jssfcNo" column="JSSFC_NO" />
+		</collection>
+		<collection property="cntrwkVO" ofType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfCntrwkVO" autoMapping="true" columnPrefix="cntrwkVO.">
+			<id property="ddcJoinNo" column="DDC_JOIN_NO" />
+		</collection>
+		<collection property="gradVO" ofType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfGradVO" autoMapping="true" columnPrefix="gradVO.">
+			<id property="gradCd" column="GRAD_CD" />
+		</collection>
+		<collection property="labrrVO" ofType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfLabrrVO" autoMapping="true" columnPrefix="labrrVO.">
+			<id property="ihidnum" column="IHIDNUM" />
+		</collection>
+	</resultMap>
+
+	<sql id="listWhere">
+		AND A.TMPR_AT = 'N'
+		<if test='se != null and se != ""'>
+			AND A.SE = #{se}
+		</if>
+		<if test='cl != null and cl != ""'>
+			AND CL = #{cl}
+		</if>
+		<if test='bizno != null and bizno != ""'>
+			AND APPLCNT_BIZNO = #{bizno}
+		</if>
+		<if test='corpNm != null and corpNm != ""'>
+			AND (
+				CASE 
+					WHEN A.SE = 'HCSE0001' THEN (SELECT 상호 FROM epdbs_link.epdbs.dbo.업체 WHERE 사업자등록번호 = A.APPLCNT_BIZNO)
+					ELSE (SELECT 기관명 FROM epdbs_link.epdbs.dbo.수요기관_NEW WHERE 사업자등록번호 = A.APPLCNT_BIZNO)
+				END
+			) LIKE CONCAT('%', #{corpNm}, '%')
+		</if>
+		<if test='progrsVO != null and progrsVO["progrsSttus"] != null and progrsVO["progrsSttus"] != ""'>
+			<if test='progrsVO["progrsSttus"] != "CAPG0001"'>
+				AND A2.PROGRS_STTUS = #{progrsVO.progrsSttus}
+			</if>
+			<if test='progrsVO["progrsSttus"] == "CAPG0001"'>
+				AND A2.PROGRS_STTUS IS NULL
+			</if>
+		</if>
+		<if test='presentnOffic != null and presentnOffic != ""'>
+			AND PRESENTN_OFFIC = #{presentnOffic}
+		</if>
+		<if test='setleSe != null and setleSe != ""'>
+			AND SETLE_SE = #{setleSe}
+		</if>
+		<if test='bgnDt != null and bgnDt != ""'>
+			AND REQST_DT >= #{bgnDt}
+		</if>
+		<if test='endDt != null and endDt != ""'>
+			AND REQST_DT &lt;= #{endDt}
+		</if>
+		<if test='issuBgnDt != null and issuBgnDt != ""'>
+			AND ISSU_DT >= #{issuBgnDt}
+		</if>
+		<if test='issuEndDt != null and issuEndDt != ""'>
+			AND ISSU_DT &lt;= #{issuEndDt}
+		</if>
+		<if test='rgstId != null and rgstId != ""'>
+			AND A.RGST_ID = #{rgstId}
+		</if>
+		<if test='chrgBrffc != null and chrgBrffc != ""'>
+			AND A.CHRG_BRFFC = #{chrgBrffc}
+		</if>
+	</sql>
+
+	<!-- 목록갯수조회 -->
+	<select id="selectHoldCrtfListCnt" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultType="int">
+		SELECT COUNT(1)
+		FROM HOLD_CRTF A
+			LEFT JOIN HOLD_CRTF_PROGRS A2
+				ON A.SN = A2.HOLD_CRTF_SN
+				AND A2.SN IN (
+					SELECT MAX(SN)
+					FROM HOLD_CRTF_PROGRS
+					GROUP BY HOLD_CRTF_SN
+				)
+			LEFT JOIN (
+				SELECT SN, MAX(ISSU_DT) ISSU_DT
+				FROM HOLD_CRTF_ISSU
+				GROUP BY SN
+			) A3
+				ON A.SN = A3.SN
+		WHERE 1 = 1
+		<include refid="listWhere" />
+	</select>
+
+	<!-- 목록조회 -->
+	<select id="selectHoldCrtfList" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO">
+		SELECT *  
+		FROM( 
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY A.SN DESC) AS ROWNUM, 
+				A.SN,
+				B.CD_NM SE,
+				C.CD_NM CL,
+				(
+					CASE 
+						WHEN A.SE = 'HCSE0001' THEN (SELECT 상호 FROM epdbs_link.epdbs.dbo.업체 WHERE 사업자등록번호 = A.APPLCNT_BIZNO)
+						ELSE (SELECT 기관명 FROM epdbs_link.epdbs.dbo.수요기관_NEW WHERE 사업자등록번호 = A.APPLCNT_BIZNO)
+					END
+				) CORP_NM,
+				APPLCNT_BIZNO,
+				ISSU_CO,
+				D.CD_NM SETLE_SE,
+				E.CD_NM RECPT_SE,
+				F.CD_NM SPT_SE,
+				REQST_DT,
+				ISSU_DT,
+				RCEPT_NO,
+				A2.PROGRS_STTUS [progrsVO.PROGRS_STTUS],
+				G.CD_NM [progrsVO.PROGRS_STTUS_NM],
+				A2.PROGRS_DE [progrsVO.PROGRS_DE],
+				A2.RPLY_TMLMT [progrsVO.RPLY_TMLMT],
+				A2.PROGRS_RESN [progrsVO.PROGRS_RESN],
+				A.RGST_ID
+			FROM HOLD_CRTF A
+				LEFT JOIN HOLD_CRTF_PROGRS A2
+					ON A.SN = A2.HOLD_CRTF_SN
+					AND A2.SN IN (
+						SELECT MAX(SN)
+						FROM HOLD_CRTF_PROGRS
+						GROUP BY HOLD_CRTF_SN
+					)
+				LEFT JOIN (
+					SELECT SN, MAX(ISSU_DT) ISSU_DT
+					FROM HOLD_CRTF_ISSU
+					GROUP BY SN
+				) A3
+					ON A.SN = A3.SN
+				LEFT JOIN CMMN_CD B
+					ON A.SE = B.CD_ID
+				LEFT JOIN CMMN_CD C
+					ON A.CL = C.CD_ID
+				LEFT JOIN CMMN_CD D
+					ON A.SETLE_SE = D.CD_ID
+				LEFT JOIN CMMN_CD E
+					ON A.RECPT_SE = E.CD_ID
+				LEFT JOIN CMMN_CD F
+					ON A.SPT_SE = F.CD_ID
+				LEFT JOIN CMMN_CD G
+					ON A2.PROGRS_STTUS = G.CD_ID
+			WHERE 1 = 1 
+			<include refid="listWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+
+	<!-- 엑셀목록조회 -->
+	<select id="selectHoldCrtfListXls" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultType="java.util.LinkedHashMap">
+		SELECT 
+			ROW_NUMBER() OVER(ORDER BY A.SN DESC) AS NO, 
+			CONCAT(B.CD_NM, ISNULL(C.CD_NM, '')) "구분",
+			E.CD_NM "발급구분", 
+			F.CD_NM "접수방법",
+			A.RGST_ID "등록ID",
+			(
+				CASE 
+					WHEN A.SE = 'HCSE0001' THEN (SELECT 상호 FROM epdbs_link.epdbs.dbo.업체 WHERE 사업자등록번호 = A.APPLCNT_BIZNO)
+					ELSE (SELECT 기관명 FROM epdbs_link.epdbs.dbo.수요기관_NEW WHERE 사업자등록번호 = A.APPLCNT_BIZNO)
+				END
+			) "상호 또는 기관명",
+			APPLCNT_BIZNO "사업자등록번호",
+			REQST_DT "신청일",
+			ISSU_DT "발급일",
+			ISSU_CO "발급부수",
+			G.CD_NM "증빌서류"
+		FROM HOLD_CRTF A
+			LEFT JOIN HOLD_CRTF_PROGRS A2
+				ON A.SN = A2.HOLD_CRTF_SN
+				AND A2.SN IN (
+					SELECT MAX(SN)
+					FROM HOLD_CRTF_PROGRS
+					GROUP BY HOLD_CRTF_SN
+				)
+			LEFT JOIN (
+				SELECT SN, MAX(ISSU_DT) ISSU_DT
+				FROM HOLD_CRTF_ISSU
+				GROUP BY SN
+			) A3
+				ON A.SN = A3.SN
+			LEFT JOIN CMMN_CD B
+				ON A.SE = B.CD_ID
+			LEFT JOIN CMMN_CD C
+				ON A.CL = C.CD_ID
+			LEFT JOIN CMMN_CD D
+				ON A.SETLE_SE = D.CD_ID
+			LEFT JOIN CMMN_CD E
+				ON A.RECPT_SE = E.CD_ID
+			LEFT JOIN CMMN_CD F
+				ON A.SPT_SE = F.CD_ID
+			LEFT JOIN CMMN_CD G
+				ON A2.PROGRS_STTUS = G.CD_ID
+		WHERE 1 = 1 
+		<include refid="listWhere" />
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectHoldCrtfView" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultMap="viewMap">
+		SELECT 
+			A.SN, --일련번호
+			A.SE, --구분
+			B.CD_NM SE_NM, --구분명
+			A.CL, --분류
+			C.CD_NM CL_NM, --분류명
+			APPLCNT_BIZNO, --신청자 사업자번호
+			A.BIZNO, --사업자번호
+			BPLC_ALL_AT, --전체사업장여부
+			LABRR_ALL_AT, --전체근로자여부
+			GRAD_ALL_AT, --전체등급여부
+			JSSFC_ALL_AT, --전체직종여부
+			PRESENTN_OFFIC, --제출처
+			G.CD_NM PRESENTN_OFFIC_NM, --제출처명
+			PRESENTN_OFFIC_ETC, --제출처 직접입력
+			ISSU_CO, --발급매수
+			SETLE_SE, --결재구분
+			D.CD_NM SETLE_SE_NM, --결제구분명
+			RECPT_SE, --접수방법
+			E.CD_NM RECPT_SE_NM, --접수방법명
+			SPT_SE, --현작구분
+			F.CD_NM SPT_SE_NM, --현장구분명
+			PROGRS_STTUS [progrsVO.PROGRS_STTUS], --진행상태
+			A51.CD_NM [progrsVO.PROGRS_STTUS_NM], --진행상태명
+			FEE_SN, --수수료 일련번호
+			REQST_DT, --신청일
+			A.RGST_ID, --등록아이디
+			A.RCEPT_NO, --접수번호
+			A6.HOLD [feeVO.HOLD], --방문수수료
+			A6.HOLD_ONLINE [feeVO.HOLD_ONLINE], --온라인수수료
+			A1.JSSFC_NO [jssfcVO.JSSFC_NO], --직종번호
+			A11.JSSFC_NM [jssfcVO.JSSFC_NM], --직종명
+			A2.GRAD_CD [gradVO.GRAD_CD], --등급코드
+			A21.CD_NM [gradVO.GRAD_NM], --등급명
+			A3.DDC_JOIN_NO [cntrwkVO.DDC_JOIN_NO], --공제계약번호
+			A3.SE [cntrwkVO.SE], --사업장구분
+			A31.CNTRCT_NM [cntrwkVO.CNTRCT_NM], --공사명
+			A311.기관명 [cntrwkVO.DMINSTT_NM], --수요기관명
+			A31.CNSTWK_LOCPLC_ADDR [cntrwkVO.ADRS], --현장주소
+			A32.CD_NM [cntrwkVO.SE_NM], --사업장구분명
+			A4.IHIDNUM [labrrVO.IHIDNUM], --근로자 주민번호
+			A4.DDC_JOIN_NO [labrrVO.DDC_JOIN_NO], --근로자 공제계약번호
+			A41.NM [labrrVO.NM], --근로자명
+			A4.SE [labrrVO.SE], --근로자구분
+			A42.CD_NM [labrrVO.SE_NM], --근로자구분명
+			A4.CL [labrrVO.CL], --근로자분류
+			A44.CD_NM [labrrVO.CL_NM], --근로자분류명
+			A45.CNTRCT_NM [labrrVO.CNTRCT_NM], --근로자공사명
+			ISNULL(A4.JSSFC_NO, A41.JSSFC_NO) [labrrVO.JSSFC_NO], --근로자직종
+			A43.JSSFC_NM [labrrVO.JSSFC_NM], --근로자직종명
+			A7.USER_NAME [userVO.USER_NAME], --담당자명
+			H.명칭 [userVO.BRFFC_NM] --담당부서
+		FROM HOLD_CRTF A
+			LEFT JOIN HOLD_CRTF_JSSFC A1
+				ON A.SN = A1.SN
+			LEFT JOIN JSSFC_INFO A11
+				ON A1.JSSFC_NO = A11.JSSFC_NO
+			LEFT JOIN HOLD_CRTF_GRAD A2
+				ON A.SN = A2.SN
+			LEFT JOIN CMMN_CD A21
+				ON A2.GRAD_CD = A21.CD_ID
+			LEFT JOIN HOLD_CRTF_CNTRWK A3
+				ON A.SN = A3.SN
+			LEFT JOIN CNTRCT_INFO A31
+				ON A3.DDC_JOIN_NO = A31.DDC_JOIN_NO
+				AND A3.SE = A31.SE
+			LEFT JOIN epdbs_link.epdbs.dbo.수요기관_NEW A311
+				ON A31.DMINSTT_CD = A311.기관코드
+			LEFT JOIN CMMN_CD A32
+				ON A3.SE = A32.CD_ID
+			LEFT JOIN HOLD_CRTF_LABRR A4
+				ON A.SN = A4.SN
+			LEFT JOIN USER_MAIN_JSSFC A41
+				ON A4.IHIDNUM = A41.IHIDNUM
+			LEFT JOIN CMMN_CD A42
+				ON A4.SE = A42.CD_ID
+			LEFT JOIN JSSFC_INFO A43
+				ON A43.JSSFC_NO = ISNULL(A4.JSSFC_NO, A41.JSSFC_NO)
+			LEFT JOIN CMMN_CD A44
+				ON A4.CL = A44.CD_ID
+			LEFT JOIN CNTRCT_INFO A45
+				ON A4.DDC_JOIN_NO = A45.DDC_JOIN_NO
+			LEFT JOIN HOLD_CRTF_PROGRS A5
+				ON A.SN = A5.HOLD_CRTF_SN
+				AND A5.SN IN (
+					SELECT MAX(SN)
+					FROM HOLD_CRTF_PROGRS
+					GROUP BY HOLD_CRTF_SN
+				)
+			LEFT JOIN CMMN_CD A51
+				ON A5.PROGRS_STTUS = A51.CD_ID
+			LEFT JOIN FEE A6
+				ON A.FEE_SN = A6.SN
+			LEFT JOIN epdbs_link.sso.dbo.V_USER A7
+				ON A.CHRG_ID = A7.USER_ID
+			LEFT JOIN CMMN_CD B
+				ON A.SE = B.CD_ID
+			LEFT JOIN CMMN_CD C
+				ON A.CL = C.CD_ID
+			LEFT JOIN CMMN_CD D
+				ON A.SETLE_SE = D.CD_ID
+			LEFT JOIN CMMN_CD E
+				ON A.RECPT_SE = E.CD_ID
+			LEFT JOIN CMMN_CD F
+				ON A.SPT_SE = F.CD_ID
+			LEFT JOIN CMMN_CD G
+				ON A.PRESENTN_OFFIC = G.CD_ID
+			LEFT JOIN epdbs_link.epdbs.dbo.공제회 H
+				ON A.CHRG_BRFFC = H.인덱스
+		WHERE A.SN = #{sn}
+	</select>
+	
+	<!-- 발급대상자수 조회 -->
+	<select id="selectHoldCrtfIssuLabrrCnt" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultType="int">
+		IF OBJECT_ID('tempdb..#TMP_IHIDNUM_HOLD') IS NOT NULL DROP TABLE #TMP_IHIDNUM_HOLD;
+	
+		SELECT A.IHIDNUM, A.BPLC_NO DDC_JOIN_NO, A2.JSSFC_NO
+		INTO #TMP_IHIDNUM_HOLD
+		FROM CNTC_KCOMWEL_WORK_CMCL(NOLOCK) A
+			INNER JOIN JSSFC_RELATE A1
+				ON A.JSSFC_ODR = SUBSTRING(A1.CNTC_JSSFC_CD, 1, 1)
+				AND A.JSSFC_CD = SUBSTRING(A1.CNTC_JSSFC_CD, 2, 10)
+				AND A1.CNTC_SE_CD = 'JRIC0003'
+			INNER JOIN JSSFC_INFO A2
+				ON A1.JSSFC_NO = A2.JSSFC_NO
+				AND A2.SE = 'JISE0001'
+				AND A2.ACTVTY_AT = 'Y'
+			INNER JOIN USER_MAIN_JSSFC B
+				ON A.IHIDNUM = B.IHIDNUM
+		WHERE A.BIZNO = CONVERT(VARCHAR, #{bizno})
+		
+		INSERT INTO #TMP_IHIDNUM_HOLD
+		SELECT A3.IHIDNUM, A3.DDC_JOIN_NO, A3.JSSFC_NO
+		FROM CNTC_KCOMWEL_WORK_CNSTWK A
+			INNER JOIN ISSU_AGRE A3
+				ON A.BPLC_NO = A3.DDC_JOIN_NO
+				AND A3.CNTRWK_SE = 'AGSE0002'
+				AND A3.VALID_DT >= GETDATE()
+		WHERE A.BIZNO = CONVERT(VARCHAR, #{bizno})
+
+		INSERT INTO #TMP_IHIDNUM_HOLD
+		SELECT A3.IHIDNUM, A3.DDC_JOIN_NO, A3.JSSFC_NO
+		FROM epdbs_link.epdbs.dbo.공제계약 A
+			INNER JOIN ISSU_AGRE A3
+				ON A.공제계약번호 = A3.DDC_JOIN_NO
+				AND A3.CNTRWK_SE = 'AGSE0001'
+				AND A3.VALID_DT >= GETDATE()
+		WHERE A.사업자등록번호 = CONVERT(VARCHAR, #{bizno})
+	
+		SELECT COUNT(DISTINCT A.IHIDNUM) issuLabrrCo
+		FROM (
+			SELECT IHIDNUM, JSSFC_NO
+			FROM #TMP_IHIDNUM_HOLD A
+			WHERE 1 = 1
+		<if test='cntrwkVO != null and bplcAllAt != "Y"'>
+			AND A.DDC_JOIN_NO IN
+			<foreach collection="cntrwkVO" item="vo" separator="," open="(" close=")">
+				#{vo.ddcJoinNo}
+			</foreach>
+		</if>
+		<if test='labrrVO != null and labrrAllAt != "Y"'>
+			AND A.IHIDNUM IN
+			<foreach collection="labrrVO" item="vo" separator="," open="(" close=")">
+				#{vo.ihidnum}
+			</foreach>
+		</if>
+		<if test='jssfcVO != null and jssfcAllAt != "Y"'>
+			AND A.JSSFC_NO IN
+			<foreach collection="jssfcVO" item="vo" separator="," open="(" close=")">
+				#{vo.jssfcNo}
+			</foreach>
+		</if>
+				UNION
+			SELECT IHIDNUM, JSSFC_NO
+			FROM HOLD_CRTF_LABRR
+			WHERE SN = #{sn}
+			AND CL = 'HCLC0003'
+		) A
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertHoldCrtf" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO">
+		<selectKey keyProperty="sn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM HOLD_CRTF
+		</selectKey>
+		INSERT INTO HOLD_CRTF(
+			SN, SE, CL, BIZNO, BPLC_ALL_AT, LABRR_ALL_AT, GRAD_ALL_AT, JSSFC_ALL_AT, PRESENTN_OFFIC, PRESENTN_OFFIC_ETC, ISSU_CO,
+			SETLE_SE, RECPT_SE, SPT_SE, FEE_SN, REQST_DT, RGST_ID, CHRG_BRFFC, CHRG_ID, APPLCNT_BIZNO, TMPR_AT
+		)VALUES(
+			#{sn}, #{se}, #{cl}, #{bizno}, #{bplcAllAt}, #{labrrAllAt}, #{gradAllAt}, #{jssfcAllAt}, #{presentnOffic}, #{presentnOfficEtc}, #{issuCo}, 
+			#{setleSe}, #{recptSe}, #{sptSe}, #{feeSn}, getDate(), #{rgstId}, #{chrgBrffc}, #{chrgId}, #{applcntBizno}, #{tmprAt}
+		);
+		
+		<if test='cntrwkVO != null and bplcAllAt != "Y"'>
+			--사업장
+			INSERT INTO HOLD_CRTF_CNTRWK(
+				SN, DDC_JOIN_NO, SE
+			) VALUES 
+			<foreach collection="cntrwkVO" item="vo" separator="),(" open="(" close=")">
+				#{sn}, #{vo.ddcJoinNo}, #{vo.se}
+			</foreach>
+		</if>
+		<if test='labrrVO != null and labrrAllAt != "Y"'>
+			--근로자
+			INSERT INTO HOLD_CRTF_LABRR(
+				SN, IHIDNUM, SE, JSSFC_NO, DDC_JOIN_NO, CL
+			)VALUES
+			<foreach collection="labrrVO" item="vo" separator="),(" open="(" close=")">
+				#{sn}, #{vo.ihidnum}, #{vo.se}, #{vo.jssfcNo}, #{vo.ddcJoinNo}, #{vo.cl}
+			</foreach>
+		</if>
+		<if test='jssfcVO != null and jssfcAllAt != "Y"'>
+			--직종
+			INSERT INTO HOLD_CRTF_JSSFC(
+				SN, JSSFC_NO
+			)VALUES
+			<foreach collection="jssfcVO" item="vo" separator="),(" open="(" close=")">
+				#{sn}, #{vo.jssfcNo}
+			</foreach>
+		</if>
+		<if test='gradVO != null and gradAllAt != "Y"'>
+			--등급
+			INSERT INTO HOLD_CRTF_GRAD(
+				SN, GRAD_CD
+			)VALUES
+			<foreach collection="gradVO" item="vo" separator="),(" open="(" close=")">
+				#{sn}, #{vo.gradCd}
+			</foreach>
+		</if>
+	</insert>
+
+	<!-- 수정 -->
+	<update id="updateHoldCrtf" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO">
+		UPDATE HOLD_CRTF
+		SET SE = #{se}
+			,CL = #{cl}
+			,BIZNO = #{bizno}
+			,BPLC_ALL_AT = #{bplcAllAt}
+			,LABRR_ALL_AT = #{labrrAllAt}
+			,GRAD_ALL_AT = #{gradAllAt}
+			,JSSFC_ALL_AT = #{jssfcAllAt}
+			,PRESENTN_OFFIC = #{presentnOffic}
+			,PRESENTN_OFFIC_ETC = #{presentnOfficEtc}
+			,ISSU_CO = #{issuCo}
+			,SETLE_SE = #{setleSe}
+			,FEE_SN = #{feeSn}
+			,CHG_ID = #{rgstId}
+			,CHG_DT = GETDATE()
+		WHERE SN = #{sn}
+	</update>
+	
+	<!-- 접수번호 수정 -->
+	<update id="updateHoldCrtfRceptNo" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO">
+		<selectKey order="BEFORE" resultType="String" keyProperty="rceptNo">
+			SELECT COUNT(1)+1 RCEPT_NO
+			FROM HOLD_CRTF 
+			WHERE RCEPT_NO LIKE CONVERT(VARCHAR(2), GETDATE(), 2) + '-3' + RIGHT(CONVERT(VARCHAR(6), GETDATE(), 12), 4) + '%'
+		</selectKey>
+		
+		UPDATE HOLD_CRTF
+		SET RCEPT_NO = CONVERT(VARCHAR(2), GETDATE(), 2) + '-3' + RIGHT(CONVERT(VARCHAR(6), GETDATE(), 12), 4) + '-' + REPLICATE(0, 4 - LEN(#{rceptNo})) + #{rceptNo}
+			,CHRG_BRFFC = #{chrgBrffc}
+			,CHRG_ID = #{chrgId}
+		WHERE SN = #{sn}
+	</update>
+	
+	<!-- 삭제 -->
+	<delete id="deleteHoldCrtf" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO">
+		DELETE FROM HOLD_CRTF
+		WHERE SN = #{sn}
+	</delete>
+	
+	<!-- 사업장 목록조회 -->
+	<select id="selectHoldCrtfCntrwkList" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfCntrwkVO" resultType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfCntrwkVO">
+		SELECT 
+			SN,
+			DDC_JOIN_NO,
+			SE
+		FROM HOLD_CRTF_CNTRWK
+		WHERE SN = #{sn}
+	</select>
+
+	<!-- 사업장 등록 -->
+	<insert id="insertHoldCrtfCntrwk" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfCntrwkVO">
+		INSERT INTO HOLD_CRTF_CNTRWK(
+			SN, DDC_JOIN_NO, SE
+		)VALUES(
+			#{sn}, #{ddcJoinNo}, #{se}
+		)
+	</insert>
+
+	<!-- 사업장 삭제 -->
+	<delete id="deleteHoldCrtfCntrwk" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO">
+		DELETE FROM HOLD_CRTF_CNTRWK
+		WHERE SN = #{sn}
+	</delete>
+	
+	<!-- 근로자 목록조회 -->
+	<select id="selectHoldCrtfLabrrList" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfLabrrVO" resultType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfLabrrVO">
+		SELECT 
+			SN,
+			IHIDNUM
+		FROM HOLD_CRTF_LABRR
+		WHERE SN = #{sn}
+	</select>
+
+	<!-- 근로자 등록 -->
+	<insert id="insertHoldCrtfLabrr" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfLabrrVO">
+		INSERT INTO HOLD_CRTF_LABRR(
+			SN, IHIDNUM, SE, JSSFC_NO, DDC_JOIN_NO, CL
+		)VALUES(
+			#{sn}, #{ihidnum}, #{se}, #{jssfcNo}, #{ddcJoinNo}, #{cl}
+		)
+	</insert>
+
+	<!-- 근로자 삭제 -->
+	<delete id="deleteHoldCrtfLabrr" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO">
+		DELETE FROM HOLD_CRTF_LABRR
+		WHERE SN = #{sn}
+	</delete>
+	
+	<!-- 직종 목록조회 -->
+	<select id="selectHoldCrtfJssfcList" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfJssfcVO" resultType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfJssfcVO">
+		SELECT 
+			SN,
+			JSSFC_NO
+		FROM HOLD_CRTF_JSSFC
+		WHERE SN = #{sn}
+	</select>
+
+	<!-- 직종 등록 -->
+	<insert id="insertHoldCrtfJssfc" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfJssfcVO">
+		INSERT INTO HOLD_CRTF_JSSFC(
+			SN,
+			JSSFC_NO
+		)VALUES(
+			#{sn}, #{jssfcNo}
+		)
+	</insert>
+
+	<!-- 직종 삭제 -->
+	<delete id="deleteHoldCrtfJssfc" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO">
+		DELETE FROM HOLD_CRTF_JSSFC
+		WHERE SN = #{sn}
+	</delete>
+
+	<!-- 등급 목록조회 -->
+	<select id="selectHoldCrtfGradList" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfGradVO" resultType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfGradVO">
+		SELECT 
+			SN,
+			GRAD_CD
+		FROM HOLD_CRTF_GRAD
+		WHERE SN = #{sn}
+	</select>
+
+	<!-- 등급 등록 -->
+	<insert id="insertHoldCrtfGrad" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfGradVO">
+		INSERT INTO HOLD_CRTF_GRAD(
+			SN,
+			GRAD_CD
+		)VALUES(
+			#{sn}, #{gradCd}
+		)
+	</insert>
+
+	<!-- 등급 삭제 -->
+	<delete id="deleteHoldCrtfGrad" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO">
+		DELETE FROM HOLD_CRTF_GRAD
+		WHERE SN = #{sn}
+	</delete>
+	
+	<!-- 진행상태 목록조회 -->
+	<select id="selectHoldCrtfProgrsList" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfProgrsVO">
+		SELECT 
+			A.SN,
+			HOLD_CRTF_SN,
+			B.CD_NM PROGRS_STTUS,
+			PROGRS_RESN,
+			PROGRS_DE,
+			RPLY_TMLMT,
+			A.RGST_ID,
+			A1.USER_NAME RGST_NM,
+			A2.명칭 RGST_BRFFC,
+			A.RGST_DT
+		FROM HOLD_CRTF_PROGRS A
+			INNER JOIN HOLD_CRTF A0
+				ON A.HOLD_CRTF_SN = A0.SN
+			LEFT JOIN epdbs_link.sso.dbo.V_USER A1
+				ON A.RGST_ID = A1.USER_ID
+			LEFT JOIN epdbs_link.epdbs.dbo.공제회 A2
+				ON A0.CHRG_BRFFC = A2.인덱스
+			INNER JOIN CMMN_CD B
+				ON A.PROGRS_STTUS = B.CD_ID
+		WHERE A.HOLD_CRTF_SN = #{sn}
+	</select>
+
+	<!--진행상태 등록 -->
+	<insert id="insertHoldCrtfProgrs" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfProgrsVO">
+		<selectKey keyProperty="sn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0)+1 sn FROM HOLD_CRTF_PROGRS
+		</selectKey>
+		INSERT INTO HOLD_CRTF_PROGRS(
+			SN,
+			HOLD_CRTF_SN,
+			PROGRS_STTUS,
+			PROGRS_RESN,
+			PROGRS_DE,
+			RPLY_TMLMT,
+			RGST_ID,
+			RGST_DT
+		)VALUES(
+			#{sn}, #{holdCrtfSn}, #{progrsSttus}, #{progrsResn}, #{progrsDe}, #{rplyTmlmt}, #{rgstId}, GETDATE()
+		)
+	</insert>
+	
+	<sql id="cntrctListWhere">
+		<if test='cntrctNm != null and cntrctNm != ""'>
+			AND CNTRCT_NM LIKE CONCAT('%', #{cntrctNm}, '%')
+		</if>
+		<if test='seNm != null and seNm != ""'>
+			AND SE_NM = #{seNm}
+		</if>
+		<if test='bizno != null and bizno != ""'>
+			AND BIZNO = CONVERT(VARCHAR, #{bizno})
+		</if>
+		<if test='ddcJoinNoList != null'>
+			<foreach collection="ddcJoinNoList" item="joinNo" open="AND DDC_JOIN_NO IN (" close=")" separator=",">
+				#{joinNo}
+			</foreach>
+		</if>
+		<if test='rgstId != null and rgstId != ""'>
+			AND A.DDC_JOIN_NO IN (SELECT DDC_JOIN_NO FROM USER_CNTRCT_RELATE WHERE USER_ID = #{rgstId})
+		</if>
+		<if test='dminsttNm != null and dminsttNm != ""'>
+			AND A1.기관명 LIKE CONCAT('%', #{dminsttNm}, '%')
+		</if>
+	</sql>
+	
+	<!-- 사업장 목록갯수조회 -->
+	<select id="selectCntrctListCnt" parameterType="kr.or.cwma.admin.userInfo.vo.CntrctInfoVO" resultType="int">
+		SELECT COUNT(1)
+		FROM CNTRCT_INFO A
+			LEFT JOIN epdbs_link.epdbs.dbo.수요기관_NEW A1
+				ON A.DMINSTT_CD = A1.기관코드
+		WHERE A.해지일자 IS NULL
+		AND (A.해지구분 = '' OR A.해지구분 IS NULL)
+		<include refid="cntrctListWhere" />
+	</select>
+	
+	<!-- 사업장 목록조회 -->
+	<select id="selectCntrctList" parameterType="kr.or.cwma.admin.userInfo.vo.CntrctInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.CntrctInfoVO">
+		SELECT *
+		FROM (
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY A.DDC_JOIN_NO) AS ROWNUM,
+				A.DDC_JOIN_NO,
+				A.CNTRCT_NM,
+				SE_NM,
+				A.CNSTWK_LOCPLC_ADDR,
+				A1.기관명 DMINSTT_NM
+			FROM CNTRCT_INFO A
+				LEFT JOIN epdbs_link.epdbs.dbo.수요기관_NEW A1
+					ON A.DMINSTT_CD = A1.기관코드
+			WHERE A.해지일자 IS NULL
+			AND (A.해지구분 = '' OR A.해지구분 IS NULL)
+			<include refid="cntrctListWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+	
+	<sql id="labrrListWhere">
+		<if test='gradVO != null'>
+			<foreach collection="gradVO" item="vo" close=")" open="AND B.GRAD IN (" separator=",">
+				#{vo.gradCd}
+			</foreach>
+		</if>
+		<if test='jssfcVO != null'>
+			<foreach collection="jssfcVO" item="vo" close=")" open="AND A.JSSFC_NO IN (" separator=",">
+				#{vo.jssfcNo}
+			</foreach>
+		</if>
+		<if test='cntrwkVO != null'>
+			<foreach collection="cntrwkVO" item="vo" close=")" open="AND A.DDC_JOIN_NO IN (" separator=",">
+				#{vo.ddcJoinNo}
+			</foreach>
+		</if>
+		<if test='se != null and se != ""'>
+			AND A.SE = #{se}
+		</if>
+		<if test='cntrctNm != null and cntrctNm != ""'>
+			AND A.CNTRCT_NM LIKE CONCAT('%', #{cntrctNm}, '%')
+		</if>
+		<if test='ihidnum != null and ihidnum != ""'>
+			AND A.IHIDNUM = #{ihidnum}
+		</if>
+		<if test='nm != null and nm != ""'>
+			AND A.NM = #{nm}
+		</if>
+		<if test='rgstId != null and rgstId != ""'>
+			AND A.DDC_JOIN_NO IN (SELECT DDC_JOIN_NO FROM USER_CNTRCT_RELATE WHERE USER_ID = #{rgstId})
+		</if>
+	</sql>
+	
+	<!-- 근로자 목록갯수조회 -->
+	<select id="selectLabrrListCnt" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultType="int">
+		SELECT COUNT(1)
+		FROM (
+			SELECT A.SE, A.NM, A.IHIDNUM, A2.JSSFC_NO, A2.JSSFC_NM, A.BPLC_NM CNTRCT_NM, A.BPLC_NO DDC_JOIN_NO, A.BIZNO
+			FROM CNTC_KCOMWEL_WORK A
+				INNER JOIN JSSFC_RELATE A1
+					ON A.JSSFC_ODR = SUBSTRING(A1.CNTC_JSSFC_CD, 1, 1)
+					AND A.JSSFC_CD = SUBSTRING(A1.CNTC_JSSFC_CD, 2, 10)
+					AND A1.CNTC_SE_CD = 'JRIC0003'
+				INNER JOIN JSSFC_INFO A2
+					ON A1.JSSFC_NO = A2.JSSFC_NO
+					AND A2.SE = 'JISE0001'
+					AND A2.ACTVTY_AT = 'Y'
+			WHERE A.SE = '상용'
+				UNION ALL
+			SELECT A.SE, A.NM, A.IHIDNUM, A2.JSSFC_NO, A2.JSSFC_NM, A.BPLC_NM CNTRCT_NM, A.BPLC_NO DDC_JOIN_NO, A.BIZNO
+			FROM CNTC_KCOMWEL_WORK A
+				INNER JOIN JSSFC_RELATE A1
+					ON A.JSSFC_ODR = SUBSTRING(A1.CNTC_JSSFC_CD, 1, 1)
+					AND A.JSSFC_CD = SUBSTRING(A1.CNTC_JSSFC_CD, 2, 10)
+					AND A1.CNTC_SE_CD = 'JRIC0003'
+				INNER JOIN JSSFC_INFO A2
+					ON A1.JSSFC_NO = A2.JSSFC_NO
+					AND A2.SE = 'JISE0001'
+					AND A2.ACTVTY_AT = 'Y'
+				INNER JOIN ISSU_AGRE A3
+					ON A.IHIDNUM = A3.IHIDNUM
+					AND A3.CNTRWK_SE = 'AGSE0002'
+					AND A2.JSSFC_NO = A3.JSSFC_NO
+					AND A3.DDC_JOIN_NO = A.BPLC_NO
+					AND A3.VALID_DT >= GETDATE()
+			WHERE A.SE = '일용'
+				UNION ALL
+			SELECT '퇴직공제', NM, A.IHIDNUM, D.JSSFC_NO, D.JSSFC_NM, C.공사명, A.DDC_JOIN_NO, C.사업자등록번호
+			FROM CWMA_CAREER A
+				INNER JOIN ISSU_AGRE A1
+					ON A.IHIDNUM = A1.IHIDNUM
+					AND A.DDC_JOIN_NO = A1.DDC_JOIN_NO
+					AND A1.CNTRWK_SE = 'AGSE0001'
+					AND A1.VALID_DT >= GETDATE()
+				INNER JOIN JSSFC_RELATE B
+					ON A.JSSFC = B.CNTC_JSSFC_CD
+					AND B.CNTC_SE_CD = 'JRIC0001'
+				INNER JOIN JSSFC_INFO D
+					ON B.JSSFC_NO = D.JSSFC_NO
+					AND A1.JSSFC_NO = D.JSSFC_NO
+					AND D.SE = 'JISE0001'
+					AND D.ACTVTY_AT = 'Y'
+				INNER JOIN epdbs_link.epdbs.dbo.공제계약 C
+					ON A.DDC_JOIN_NO = C.공제계약번호
+		) A
+			INNER JOIN USER_MAIN_JSSFC B
+				ON A.IHIDNUM = B.IHIDNUM
+		WHERE A.BIZNO = CONVERT(VARCHAR, #{bizno})
+		<include refid="labrrListWhere" />
+	</select>
+	
+	<!-- 근로자 목록조회 -->
+	<select id="selectLabrrList" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfLabrrVO">
+		SELECT *
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY A.IHIDNUM) ROWNUM, A.*
+			FROM (
+				SELECT A.SE, A.NM, A.IHIDNUM, A2.JSSFC_NO, A2.JSSFC_NM, A.BPLC_NM CNTRCT_NM, A.BPLC_NO DDC_JOIN_NO, A.BIZNO
+				FROM CNTC_KCOMWEL_WORK A
+					INNER JOIN JSSFC_RELATE A1
+						ON A.JSSFC_ODR = SUBSTRING(A1.CNTC_JSSFC_CD, 1, 1)
+						AND A.JSSFC_CD = SUBSTRING(A1.CNTC_JSSFC_CD, 2, 10)
+						AND A1.CNTC_SE_CD = 'JRIC0003'
+					INNER JOIN JSSFC_INFO A2
+						ON A1.JSSFC_NO = A2.JSSFC_NO
+						AND A2.SE = 'JISE0001'
+						AND A2.ACTVTY_AT = 'Y'
+				WHERE A.SE = '상용'
+					UNION ALL
+				SELECT A.SE, A.NM, A.IHIDNUM, A2.JSSFC_NO, A2.JSSFC_NM, A.BPLC_NM CNTRCT_NM, A.BPLC_NO DDC_JOIN_NO, A.BIZNO
+				FROM CNTC_KCOMWEL_WORK A
+					INNER JOIN JSSFC_RELATE A1
+						ON A.JSSFC_ODR = SUBSTRING(A1.CNTC_JSSFC_CD, 1, 1)
+						AND A.JSSFC_CD = SUBSTRING(A1.CNTC_JSSFC_CD, 2, 10)
+						AND A1.CNTC_SE_CD = 'JRIC0003'
+					INNER JOIN JSSFC_INFO A2
+						ON A1.JSSFC_NO = A2.JSSFC_NO
+						AND A2.SE = 'JISE0001'
+						AND A2.ACTVTY_AT = 'Y'
+					INNER JOIN ISSU_AGRE A3
+						ON A.IHIDNUM = A3.IHIDNUM
+						AND A3.CNTRWK_SE = 'AGSE0002'
+						AND A2.JSSFC_NO = A3.JSSFC_NO
+						AND A3.DDC_JOIN_NO = A.BPLC_NO
+						AND A3.VALID_DT >= GETDATE()
+				WHERE A.SE = '일용'
+					UNION ALL
+				SELECT '퇴직공제', NM, A.IHIDNUM, D.JSSFC_NO, D.JSSFC_NM, C.공사명, A.DDC_JOIN_NO, C.사업자등록번호
+				FROM CWMA_CAREER A
+					INNER JOIN ISSU_AGRE A1
+						ON A.IHIDNUM = A1.IHIDNUM
+						AND A.DDC_JOIN_NO = A1.DDC_JOIN_NO
+						AND A1.CNTRWK_SE = 'AGSE0001'
+						AND A1.VALID_DT >= GETDATE()
+					INNER JOIN JSSFC_RELATE B
+						ON A.JSSFC = B.CNTC_JSSFC_CD
+						AND B.CNTC_SE_CD = 'JRIC0001'
+					INNER JOIN JSSFC_INFO D
+						ON B.JSSFC_NO = D.JSSFC_NO
+						AND A1.JSSFC_NO = D.JSSFC_NO
+						AND D.SE = 'JISE0001'
+						AND D.ACTVTY_AT = 'Y'
+					INNER JOIN epdbs_link.epdbs.dbo.공제계약 C
+						ON A.DDC_JOIN_NO = C.공제계약번호
+			) A
+				INNER JOIN USER_MAIN_JSSFC B
+					ON A.IHIDNUM = B.IHIDNUM
+			WHERE A.BIZNO = CONVERT(VARCHAR, #{bizno})
+			<include refid="labrrListWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+	
+	<!-- 발급동의자 조회 -->
+	<select id="selectIssuAgreView" parameterType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO" resultType="kr.or.cwma.admin.issuAgre.vo.IssuAgreVO">
+		SELECT A.IHIDNUM, A.NM, B.DDC_JOIN_NO
+		FROM USER_MAIN_JSSFC A
+			LEFT JOIN ISSU_AGRE B
+				ON A.IHIDNUM = B.IHIDNUM
+				AND B.VALID_DT >= GETDATE()
+		WHERE A.IHIDNUM = CONVERT(VARCHAR, #{ihidnum})
+	</select>
+	
+	<!-- 지사목록 조회 -->
+	<select id="selectDdcAsctList" parameterType="kr.or.cwma.admin.common.vo.UserVO" resultType="kr.or.cwma.admin.userInfo.vo.CntrctInfoVO">
+		SELECT 인덱스 DDC_ASCT_CD, 명칭 DDC_ASCT_NM
+		FROM epdbs_link.epdbs.dbo.공제회
+		WHERE 정렬순서 &lt; 100
+		AND 인덱스 NOT IN ('07102')
+		<if test='roleSn != 1'>
+			AND 인덱스 = #{ddcAstcCd}
+		</if>
+		ORDER BY 정렬순서
+	</select>
+	
+	<sql id="issuListWhere">
+		<if test='userVO != null and userVO["ddcAstcCd"] != null and userVO["ddcAstcCd"] != ""'>
+			AND A4.DDC_ASTC_CD = #{userVO.ddcAstcCd}
+		</if>
+		<if test='bizno != null and bizno != ""'>
+			AND A1.APPLCNT_BIZNO = #{bizno}
+		</if>
+		<if test='corpNm != null and corpNm != ""'>
+			AND (
+				CASE 
+					WHEN A1.SE = 'HCSE0001' THEN (SELECT 상호 FROM epdbs_link.epdbs.dbo.업체 WHERE 사업자등록번호 = A1.APPLCNT_BIZNO)
+					ELSE (SELECT 기관명 FROM epdbs_link.epdbs.dbo.수요기관_NEW WHERE 사업자등록번호 = A1.APPLCNT_BIZNO)
+				END
+			) LIKE CONCAT('%', #{corpNm}, '%')
+		</if>
+		<if test='issuVO != null and issuVO["issuNo"] != null and issuVO["issuNo"] != ""'>
+			AND ISSU_NO = #{issuVO.issuNo}
+		</if>
+		<if test='bgnDt != null and bgnDt != ""'>
+			AND ISSU_DT >= #{bgnDt}
+		</if>
+		<if test='endDt != null and endDt != ""'>
+			AND ISSU_DT &lt;= #{endDt}
+		</if>
+	</sql>
+	
+	<!-- 발급대장 목록 갯수 조회 -->
+	<select id="selectIssuListCnt" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultType="int">
+		SELECT COUNT(1)
+		FROM HOLD_CRTF_ISSU A
+			INNER JOIN HOLD_CRTF A1
+				ON A.SN = A1.SN
+			INNER JOIN FEE A3
+				ON A1.FEE_SN = A3.SN
+			INNER JOIN epdbs_link.sso.dbo.V_USER A4
+				ON A1.CHRG_ID = A4.USER_ID
+			LEFT JOIN CMMN_CD B
+				ON A1.SE = B.CD_ID
+		WHERE 1 = 1
+		<include refid="issuListWhere" />
+	</select>
+
+	<!-- 발급대장 목록 조회 -->
+	<select id="selectIssuList" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO">
+		SELECT *
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY A.ISSU_DT DESC) ROWNUM,
+				A.ISSU_NO [issuVO.ISSU_NO],
+				A.SN,
+				B.CD_NM SE,
+				C.CD_NM CL,
+				(
+					CASE 
+						WHEN A1.SE = 'HCSE0001' THEN (SELECT 상호 FROM epdbs_link.epdbs.dbo.업체 where 사업자등록번호 = A1.APPLCNT_BIZNO)
+						ELSE (SELECT 기관명 FROM epdbs_link.epdbs.dbo.수요기관_NEW WHERE 사업자등록번호 = A1.APPLCNT_BIZNO)
+					END
+				) CORP_NM,
+				A1.APPLCNT_BIZNO,
+				A.ISSU_LABRR_CO [issuVO.ISSU_LABRR_CO],
+				A1.ISSU_CO,
+				A3.HOLD [feeVO.HOLD], --방문수수료
+				A3.HOLD_ONLINE [feeVO.HOLD_ONLINE], --온라인수수료
+				A4.USER_NAME [userVO.USER_NAME], --담당자명
+				A5.명칭 [userVO.BRFFC_NM], --담당부서
+				A.ISSU_DT [issuVO.ISSU_DT]
+			FROM HOLD_CRTF_ISSU A
+				INNER JOIN HOLD_CRTF A1
+					ON A.SN = A1.SN
+				INNER JOIN FEE A3
+					ON A1.FEE_SN = A3.SN
+				INNER JOIN epdbs_link.sso.dbo.V_USER A4
+					ON A1.CHRG_ID = A4.USER_ID
+				LEFT JOIN epdbs_link.epdbs.dbo.공제회 A5
+					ON A1.CHRG_BRFFC = A5.인덱스
+				LEFT JOIN CMMN_CD B
+					ON A1.SE = B.CD_ID
+				LEFT JOIN CMMN_CD C
+					ON A1.CL = C.CD_ID
+			WHERE 1 = 1
+			<include refid="issuListWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+	
+	<!-- 발급 등록 -->
+	<insert id="insertHoldCrtfIssu" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfIssuVO">
+		INSERT INTO HOLD_CRTF_ISSU(
+			ISSU_NO, SN, ISSU_DT, ISSU_LABRR_CO
+		)VALUES(
+			#{issuNo}, #{sn}, GETDATE(), #{issuLabrrCo}
+		)
+	</insert>
+	
+	<!-- 발급대장목록 갯수조회 -->
+	<select id="selectUserIssuListCnt" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultType="int">
+		SELECT COUNT(1)
+		FROM HOLD_CRTF A
+			INNER JOIN SANCTN_MAIN A0
+				ON A.SN = A0.DOC_NO
+				AND A0.SANCTN_KND = 'ARCS0005'
+			INNER JOIN SANCTN_PROGRS A01
+				ON A0.SANCTN_NO = A01.SANCTN_NO
+				AND SANCTN_STTUS = 'APRV0005'
+			LEFT JOIN HOLD_CRTF_ISSU A1
+				ON A.SN = A1.SN
+			LEFT JOIN CMMN_CD B
+				ON A.SE = B.CD_ID
+			LEFT JOIN CMMN_CD C
+				ON A.RECPT_SE = C.CD_ID
+		WHERE A.RGST_ID = #{rgstId}
+	</select>
+	
+	<!-- 발급대장목록조회 -->
+	<select id="selectUserIssuList" parameterType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO" resultType="kr.or.cwma.admin.holdCrtf.vo.HoldCrtfVO">
+		SELECT *
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY A.SN DESC, ISNULL(A1.ISSU_DT, GETDATE()) DESC) ROWNUM,
+				A1.ISSU_NO [issuVO.ISSU_NO],
+				A.SN,
+				B.CD_NM SE,
+				A1.ISSU_LABRR_CO [issuVO.ISSU_LABRR_CO],
+				A.ISSU_CO,
+				A3.HOLD_ONLINE [feeVO.HOLD_ONLINE], --온라인수수료
+				A1.ISSU_DT [issuVO.ISSU_DT],
+				RECPT_SE,
+				C.CD_NM RECPT_SE_NM
+			FROM HOLD_CRTF A
+				INNER JOIN SANCTN_MAIN A0
+					ON A.SN = A0.DOC_NO
+					AND A0.SANCTN_KND = 'ARCS0005'
+				INNER JOIN SANCTN_PROGRS A01
+					ON A0.SANCTN_NO = A01.SANCTN_NO
+					AND SANCTN_STTUS = 'APRV0005'
+				LEFT JOIN HOLD_CRTF_ISSU A1
+					ON A.SN = A1.SN
+				INNER JOIN FEE A3
+					ON A.FEE_SN = A3.SN
+				LEFT JOIN CMMN_CD B
+					ON A.SE = B.CD_ID
+				LEFT JOIN CMMN_CD C
+					ON A.RECPT_SE = C.CD_ID
+			WHERE A.RGST_ID = #{rgstId}
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+	
+</mapper>

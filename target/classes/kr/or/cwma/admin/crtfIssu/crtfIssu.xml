@@ -1,0 +1,805 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.crtfIssu.mapper.CrtfIssuMapper">
+	<select id="searchCrtfHistory" parameterType="CrtfIssuVO" resultType="CrtfIssuVO">
+		EXEC SP_GRAD_CAL #{issuTrgterIhidnum},  #{jssfcNo}
+	</select>
+	
+	<insert id="insertCrtfReqst" parameterType="CrtfIssuVO">
+		<selectKey keyProperty="reqstNo" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(REQST_NO), 0) + 1
+			FROM (
+				SELECT MAX(DOC_NO) REQST_NO
+				FROM SANCTN_MAIN 
+				WHERE SANCTN_KND = 'ARCS0002'
+					UNION ALL
+				SELECT MAX(REQST_NO) 
+				FROM CRTF_REQST
+			) A
+		</selectKey>
+		INSERT INTO CRTF_REQST (
+			REQST_NO, APPLCNT_NM, APPLCNT_IHIDNUM, APPLCNT_MOBLPHON, RELATE, RELATE_DETAIL, RQSTDT,
+			ISSU_ON, ISSU_TRGTER_IHIDNUM, ISSU_TRGTER_NM, ISSU_TRGTER_MOBLPHON, ISSU_TRGTER_ZIP, ISSU_TRGTER_ADRES,
+			JSSFC_NO,CNVRSN_DAYCNT,ISSU_CO,ISSU_AMOUNT,RECPT_MTH,SETLE_MTH, GRAD,RGST_DT,RGST_ID, DELETE_AT, SPT_SE, FEE_SN
+			,DETAIL_HIST_INCLS_AT, IHIDNUM_OTHBC_AT, FEE_RDCXPT_REQST,FEE_RDCXPT_TY, CHRG_BRFFC, STATE_MATTER_ADIT_AT, STATE_MATTER
+		) VALUES (
+			#{reqstNo}, #{applcntNm}, CONCAT(#{jumin1}, '-' , #{jumin2}), CONCAT(#{applcntMoblphon1}, '-' , #{applcntMoblphon2}, '-', #{applcntMoblphon3}), #{relate}, #{relateDetail}, #{rqstdt},
+			#{issuOn}, CONCAT(#{jumin3}, '-' , #{jumin4}), #{issuTrgterNm}, CONCAT(#{issuTrgterMoblphon1}, '-' , #{issuTrgterMoblphon2}, '-', #{issuTrgterMoblphon3}), #{issuTrgterZip}, #{issuTrgterAdres},
+			#{jssfcNo}, #{cnvrsnDaycnt}, #{issuCo}, #{issuAmount}, #{recptMth}, #{setleMth}, #{grad}, GETDATE(), #{rgstId}, 'N', #{sptSe}, #{feeSn},
+			#{detailHistInclsAt}, #{ihidnumOthbcAt}, #{feeRdcxptReqst}, #{feeRdcxptTy}, #{chrgBrffc}, #{stateMatterAditAt}, #{stateMatter}
+		)
+	</insert>
+	
+	<update id="updateCrtfReqst" parameterType="CrtfIssuVO">
+		UPDATE CRTF_REQST SET
+			APPLCNT_NM = #{applcntNm}
+			,APPLCNT_IHIDNUM = CONCAT(#{jumin1}, '-' , #{jumin2})
+			,APPLCNT_MOBLPHON = CONCAT(#{applcntMoblphon1}, '-' , #{applcntMoblphon2}, '-', #{applcntMoblphon3})
+			,RELATE = #{relate}
+			,RELATE_DETAIL = #{relateDetail}
+			,RQSTDT = #{rqstdt}
+			,ISSU_ON = #{issuOn}
+			,ISSU_TRGTER_IHIDNUM = CONCAT(#{jumin3}, '-' , #{jumin4})
+			,ISSU_TRGTER_NM = #{issuTrgterNm}
+			,ISSU_TRGTER_MOBLPHON = CONCAT(#{issuTrgterMoblphon1}, '-' , #{issuTrgterMoblphon2}, '-', #{issuTrgterMoblphon3})
+			,ISSU_TRGTER_ZIP = #{issuTrgterZip}
+			,ISSU_TRGTER_ADRES = #{issuTrgterAdres}
+			<if test='jssfcNo != null and jssfcNo != ""'>
+			,JSSFC_NO = #{jssfcNo}
+			</if>
+			<if test='grad != null and grad != ""'>
+			,GRAD = #{grad}
+			</if>
+			,CNVRSN_DAYCNT = #{cnvrsnDaycnt}
+			,ISSU_CO = #{issuCo}
+			,ISSU_AMOUNT = #{issuAmount}
+			,RECPT_MTH = #{recptMth}
+			,SETLE_MTH = #{setleMth}
+			,SPT_SE = #{sptSe}
+			,CHG_ID = #{rgstId}
+			,CHG_DT = GETDATE()
+			,DETAIL_HIST_INCLS_AT = #{detailHistInclsAt}
+			,IHIDNUM_OTHBC_AT = #{ihidnumOthbcAt}
+			,FEE_RDCXPT_REQST = #{feeRdcxptReqst}
+			,FEE_RDCXPT_TY = #{feeRdcxptTy}
+			,STATE_MATTER_ADIT_AT = #{stateMatterAditAt}
+			,STATE_MATTER = #{stateMatter}
+		WHERE REQST_NO = #{reqstNo}
+	</update>
+	
+	<update id="deleteCrtfReqst" parameterType="CrtfIssuVO">
+		UPDATE CRTF_REQST SET
+			DELETE_AT = 'Y'
+		WHERE REQST_NO = #{reqstNo}
+	</update>
+	
+	<select id="countCrtfIssu" parameterType="CrtfIssuVO" resultType="int">
+		SELECT COUNT(*) FROM CRTF_ISSU WHERE ISSU_NO = #{issuNo} 
+	</select>
+	
+	<insert id="insertCrtfIssu" parameterType="CrtfIssuVO">
+		INSERT INTO CRTF_ISSU (
+			ISSU_NO, REQST_NO, PRCUSE_JSSFC_DAYCNT, ETC_JSSFC_DAYCNT,EMPLYMINSRNC_DAYCNT
+			,CRQFC_DAYCNT,EDC_TRAING_DAYCNT,ETC_DAYCNT, GRAD, SANCTN_ID, ISSU_DE			
+		) VALUES (
+			#{issuNo}, #{reqstNo}, #{workDaycnt}, #{etcWorkDaycnt}, #{emplyminsrncDaycnt}
+			, #{crqfcDaycnt}, #{edcTraingDaycnt}	, #{etcDaycnt}, #{grad}, #{sanctnId}, NULL
+		)
+	</insert>
+	
+	<update id="updateCrtfIssu" parameterType="CrtfIssuVO">
+		UPDATE B SET
+			SANCTN_ID = (CASE WHEN B.SANCTN_ID IS NULL THEN #{rgstId} ELSE B.SANCTN_ID END)  
+			,ISSU_DE = GETDATE()
+		FROM CRTF_ISSU B
+		WHERE REQST_NO = #{reqstNo}
+		
+		<if test='recptMth !=null and recptMth !=""'>
+		UPDATE  A SET 
+			RECPT_MTH = (CASE WHEN A.RECPT_MTH = NULL THEN #{recptMth} ELSE RECPT_MTH END)
+			<if test='setleMth !=null and setleMth !=""'>
+			,SETLE_MTH = (CASE WHEN A.SETLE_MTH = NULL THEN #{setleMth} ELSE SETLE_MTH END)
+			</if>
+		FROM CRTF_REQST A
+		WHERE REQST_NO = #{reqstNo}
+		</if>
+		<if test='fxnum !=null and fxnum !=""'>
+		UPDATE  A SET 
+			fxnum = #{fxnum}
+		FROM CRTF_REQST A
+		WHERE REQST_NO = #{reqstNo}
+		</if>
+	</update>
+	
+	<delete id="deleteCrtfIssu" parameterType="CrtfIssuVO">
+		DELETE FROM CRTF_ISSU WHERE REQST_NO = #{reqstNo}
+	</delete>
+	
+	<sql id="listWhere">
+		WHERE DELETE_AT = 'N'
+		<if test='jumin1 != null and jumin1 != ""'>
+			AND (
+				APPLCNT_IHIDNUM LIKE CONCAT(#{jumin1} , '%')
+				OR ISSU_TRGTER_IHIDNUM LIKE CONCAT(#{jumin1} , '%')
+			)
+		</if>
+		<if test='jumin2 != null and jumin2 != ""'>
+			AND (
+				APPLCNT_IHIDNUM LIKE CONCAT('%', #{jumin2})
+				OR ISSU_TRGTER_IHIDNUM LIKE CONCAT('%', #{jumin2})
+			)
+		</if>
+		<if test='applcntNm != null and applcntNm != ""'>
+			AND APPLCNT_NM LIKE CONCAT('%', #{applcntNm}, '%')
+		</if>
+		<if test='issuTrgterNm != null and issuTrgterNm != ""'>
+			AND ISSU_TRGTER_NM LIKE CONCAT('%', #{issuTrgterNm}, '%')
+		</if>
+		<if test='bgnRqstdt != null and bgnRqstdt != ""'>
+			AND CONVERT(VARCHAR(10), RQSTDT, 23) &gt;= #{bgnRqstdt}
+		</if>
+		<if test='endRqstdt != null and endRqstdt != ""'>
+			AND CONVERT(VARCHAR(10), RQSTDT, 23) &lt;= #{endRqstdt}
+		</if>
+		<if test='bgnIssuOn != null and bgnIssuOn != ""'>
+			AND CONVERT(VARCHAR(10), ISSU_ON, 23) &gt;= #{bgnIssuOn}
+		</if>
+		<if test='endIssuOn != null and endIssuOn != ""'>
+			AND CONVERT(VARCHAR(10), ISSU_ON, 23) &lt;= #{endIssuOn}
+		</if>
+		<if test='setleMth != null and setleMth != "" and se == "req"'>
+			AND SETLE_MTH = #{setleMth}
+		</if>
+		<if test='reqstNo != null and reqstNo != "" and se == "req"'>
+			AND A.REQST_NO = #{reqstNo}
+		</if>
+		<if test='se != null and se != "" and se == "req"'>
+			AND A.REQST_NO IN (SELECT DISTINCT REQST_NO FROM CRTF_ISSU WHERE ISSU_DE IS NULL)
+		</if>
+		<if test='se != null and se != "" and se == "prt"'>
+			AND A.REQST_NO IN (SELECT DISTINCT REQST_NO FROM CRTF_ISSU WHERE ISSU_DE IS NOT NULL)
+		</if>
+		<if test='chrgBrffc != null and chrgBrffc != ""'>
+			AND A.CHRG_BRFFC = #{chrgBrffc}
+		</if>
+	</sql>
+	
+	<select id="selectCrtfReqFristCnt" parameterType="CrtfIssuVO" resultType="int">
+		SELECT COUNT(ISSU_NO) FROM (
+			SELECT
+				A.REQST_NO
+				,COUNT(B.ISSU_NO) ISSU_NO
+			FROM CRTF_REQST A
+				LEFT JOIN CRTF_ISSU B
+					ON A.REQST_NO = B.REQST_NO
+			WHERE 
+				A.APPLCNT_NM = #{applcntNm}
+				AND A.APPLCNT_IHIDNUM = CONCAT(#{jumin3}, '-', #{jumin4})
+				AND A.ISSU_TRGTER_NM   = #{applcntNm}
+				AND A.ISSU_TRGTER_IHIDNUM = CONCAT(#{jumin3}, '-', #{jumin4})
+				--AND B.ISSU_DE IS NOT NULL
+			GROUP BY A.REQST_NO
+		)AB
+	</select>
+	
+	<select id="selectCrtfReqListCnt" parameterType="CrtfIssuSearchVO" resultType="int">
+		SELECT COUNT(*)  
+		FROM( 
+			SELECT
+				A.REQST_NO,
+				(SELECT TOP 1 PROGRS_STTUS  
+							FROM FEE_CRTF_PROGRS  
+							WHERE REQST_NO = A.REQST_NO
+							ORDER BY SN DESC) SANCTN_STTUS,	 -- 수수료감면 신청 결재상태
+						(SELECT TOP 1 ISNULL(CONVERT(VARCHAR(10), ISSU_DE , 23), '') FROM CRTF_ISSU WHERE REQST_NO = A.REQST_NO) ISSU_DE
+			FROM CRTF_REQST A
+				LEFT JOIN epdbs_link.epdbs.dbo.공제회 B1
+					ON A.CHRG_BRFFC = B1.인덱스
+				LEFT JOIN CMMN_CD C
+					ON C.CD_ID = A.SPT_SE
+				LEFT JOIN CMMN_CD D
+					ON D.CD_ID = A.RECPT_MTH
+				LEFT JOIN CMMN_CD E
+					ON E.CD_ID = A.SETLE_MTH
+			<include refid="listWhere" />
+		) A
+		WHERE 1=1
+		<!-- 수수료감면 신청 검색조건 -->
+		<if test="feeRdcxptStat != null and feeRdcxptStat != '' and feeRdcxptStat == 'FEEA0000' ">
+			AND A.FEE_RDCXPT_REQST != 'Y'
+		</if>
+		<if test="feeRdcxptStat != null and feeRdcxptStat != '' and feeRdcxptStat != 'FEEA0000' ">
+			AND A.SANCTN_STTUS = #{feeRdcxptStat}
+		</if>
+	</select>
+	
+	<select id="selectCrtfReqList" parameterType="CrtfIssuSearchVO" resultType="CrtfIssuVO">
+		SELECT *  
+			FROM(	
+				SELECT 
+					ROW_NUMBER() OVER(ORDER BY A.REQST_NO DESC) AS ROWNUM ,
+					*  
+				FROM( 
+					SELECT
+						C.CD_NM SPT_SE_NM,
+						A.REQST_NO,
+						APPLCNT_NM,
+						CONVERT(VARCHAR(10), RQSTDT, 23) RQSTDT,
+						CONVERT(VARCHAR(10), ISSU_ON, 23) ISSU_ON,
+						ISSU_TRGTER_IHIDNUM,
+						ISSU_TRGTER_NM,
+						RECPT_MTH,
+						D.CD_NM RECPT_MTH_NM,
+						SETLE_MTH,
+						E.CD_NM SETLE_MTH_NM,
+						JSSFC_NO,
+						ISSU_CO,
+						A.RGST_ID,
+						DETAIL_HIST_INCLS_AT,
+						IHIDNUM_OTHBC_AT,
+						FEE_RDCXPT_REQST,
+						B1.명칭 CHRG_BRFFC,
+						(SELECT TOP 1 PROGRS_STTUS  
+							FROM FEE_CRTF_PROGRS  
+							WHERE REQST_NO = A.REQST_NO
+							ORDER BY SN DESC) SANCTN_STTUS,	 -- 수수료감면 신청 결재상태
+						(SELECT TOP 1 ISNULL(CONVERT(VARCHAR(10), ISSU_DE , 23), '') FROM CRTF_ISSU WHERE REQST_NO = A.REQST_NO) ISSU_DE
+					FROM CRTF_REQST A
+						LEFT JOIN epdbs_link.epdbs.dbo.공제회 B1
+							ON A.CHRG_BRFFC = B1.인덱스
+						LEFT JOIN CMMN_CD C
+							ON C.CD_ID = A.SPT_SE
+						LEFT JOIN CMMN_CD D
+							ON D.CD_ID = A.RECPT_MTH
+						LEFT JOIN CMMN_CD E
+							ON E.CD_ID = A.SETLE_MTH
+					<include refid="listWhere" />
+				) A
+		WHERE 1=1
+		<!-- 수수료감면 신청 검색조건 -->
+		<if test="feeRdcxptStat != null and feeRdcxptStat != '' and feeRdcxptStat == 'FEEA0000' ">
+			AND A.FEE_RDCXPT_REQST != 'Y'
+		</if>
+		<if test="feeRdcxptStat != null and feeRdcxptStat != '' and feeRdcxptStat != 'FEEA0000' ">
+			AND A.SANCTN_STTUS = #{feeRdcxptStat}
+		</if>
+		)A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+	
+	<select id="selectCrtfReqView" parameterType="CrtfIssuVO" resultType="CrtfIssuVO">
+		SELECT
+			A.REQST_NO,
+			APPLCNT_NM,
+			APPLCNT_IHIDNUM,
+			APPLCNT_MOBLPHON,
+			RELATE,
+			(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = A.RELATE) RELATE_NM,
+			RELATE_DETAIL,
+			CONVERT(VARCHAR(10), RQSTDT, 23) RQSTDT,
+			CONVERT(VARCHAR(10), ISSU_DE, 23) ISSU_ON,
+			ISSU_TRGTER_IHIDNUM,
+			ISSU_TRGTER_NM,
+			ISSU_TRGTER_MOBLPHON,
+			ISSU_TRGTER_ZIP,
+			ISSU_TRGTER_ADRES,
+			A.JSSFC_NO,
+			(SELECT JSSFC_NM fROM JSSFC_INFO WHERE JSSFC_NO = A.JSSFC_NO) JSSFC_NM,
+			CNVRSN_DAYCNT,
+			B.PRCUSE_JSSFC_DAYCNT WORK_DAYCNT,
+			B.ETC_JSSFC_DAYCNT ETC_WORK_DAYCNT,
+			B.EMPLYMINSRNC_DAYCNT,
+			B.CRQFC_DAYCNT,
+			B.ETC_DAYCNT,
+			B.EDC_TRAING_DAYCNT,
+			ISSU_CO,
+			ISSU_AMOUNT,
+			RECPT_MTH,
+			STATE_MATTER_ADIT_AT, 
+			STATE_MATTER,
+			(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = A.RECPT_MTH) RECPT_MTH_NM,
+			SETLE_MTH,
+			(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = A.SETLE_MTH) SETLE_MTH_NM,
+			A.RGST_ID,
+			A.GRAD,
+			(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = A.GRAD) GRAD_NM,
+			SPT_SE,
+			(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = A.SPT_SE) SPT_SE_NM,
+			CONVERT(VARCHAR(10), A.RGST_DT, 23) RGST_DT,
+			CHG_ID,
+			CONVERT(VARCHAR(10), CHG_DT, 23) CHG_DT,
+			DETAIL_HIST_INCLS_AT,	-- 세부이력 포함여부
+			IHIDNUM_OTHBC_AT,	-- 주민등록번호 공개여부
+			FEE_RDCXPT_REQST,	-- 수수료감면 신청
+			FEE_RDCXPT_TY,		-- 수수료 감면 유형
+			(SELECT CD_NM FROM CMMN_CD WHERE PARNTS_CD_ID ='RDCX0000' AND CD_ID=A.FEE_RDCXPT_TY) FEE_RDCXPT_TY_NM,
+			FEE_RDCXPT_ATCHMNFL,		-- 수수료 감면 첨부파일
+			FLOOR(CNVRSN_DAYCNT/A2.STDR_DAYCNT*100)/100 GRAD_CNT,
+			(SELECT 명칭 FROM epdbs_link.epdbs.dbo.공제회 WHERE 인덱스 = A.CHRG_BRFFC) CHRG_DEPT,
+			(SELECT USER_NAME FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = B.SANCTN_ID) CHRG_NM,
+			(SELECT TOP 1 PROGRS_STTUS FROM FEE_CRTF_PROGRS WHERE REQST_NO=A.REQST_NO ORDER BY SN DESC) PROGRS_STTUS,
+			C2.SANCTN_STTUS
+		FROM CRTF_REQST A
+			LEFT JOIN CRTF_ISSU B 
+				ON B.REQST_NO = A.REQST_NO
+				AND B.ISSU_NO IN (
+					SELECT MAX(ISSU_NO) FROM CRTF_ISSU GROUP BY REQST_NO
+				)
+			INNER JOIN JSSFC_INFO A2
+				ON A.JSSFC_NO = A2.JSSFC_NO
+			LEFT JOIN SANCTN_MAIN C
+				ON C.DOC_NO = A.REQST_NO
+				AND C.SANCTN_KND = 'ARCS0002'
+			LEFT JOIN SANCTN_PROGRS C2
+				ON C.SANCTN_NO = C2.SANCTN_NO
+				AND SANCTN_PROGRS_NO IN (
+					select max(SANCTN_PROGRS_NO)
+					from SANCTN_PROGRS
+					where SANCTN_KND = 'ARCS0002'
+					group by SANCTN_NO
+				)
+		WHERE A.REQST_NO = #{reqstNo}
+		AND DELETE_AT = 'N'
+	</select>
+	
+	<sql id="IssuListWhere">
+		WHERE A.DELETE_AT = 'N'
+		<!-- 마이페이지 검색 -->
+		<if test='viewType != null and viewType != ""'>
+			<!-- 개인사용자 -->
+			<if test='viewType == "USSE0001"'>
+				AND ISSU_TRGTER_IHIDNUM = CONCAT(#{jumin1} , '-', #{jumin2})
+				AND APPLCNT_IHIDNUM = CONCAT(#{jumin1} , '-', #{jumin2})
+				AND APPLCNT_NM = #{issuTrgterNm}
+				AND ISSU_TRGTER_NM = #{issuTrgterNm}
+			</if>
+			<if test='viewType == "USSE0002" or viewType == "USSE0003" or viewType == "USSE0004"'>
+				AND A.RGST_ID = #{rgstId}
+			</if>
+		</if>
+		<if test='viewType == null or viewType == ""'>
+			AND B.ISSU_DE IS NOT NULL
+		</if>
+		<if test='applcntNm != null and applcntNm != ""'>
+			AND APPLCNT_NM LIKE CONCAT('%', #{applcntNm}, '%')
+		</if>
+		<if test='issuNo == null or issuNo == ""'>
+		AND B.ISSU_NO IN (SELECT MAX(ISSU_NO) FROM CRTF_ISSU WHERE SANCTN_ID IS NOT NULL GROUP BY REQST_NO)
+		</if>
+		<if test='issuNo != null and issuNo != ""'>
+		AND B.ISSU_NO IN (SELECT MAX(ISSU_NO) FROM CRTF_ISSU WHERE ISSU_NO = #{issuNo} AND SANCTN_ID IS NOT NULL GROUP BY REQST_NO)
+		</if>
+		<if test='jumin1 != null and jumin1 != "" and (viewType == null or viewType == "")'>
+			<if test='jumin2 != null and jumin2 != "" and (viewType == null or viewType == "")'>
+			AND (APPLCNT_IHIDNUM = CONCAT(#{jumin1} , '-', #{jumin2})
+				OR ISSU_TRGTER_IHIDNUM = CONCAT(#{jumin1} , '-', #{jumin2}))
+			</if>
+		</if>
+		<if test='issuTrgterNm != null and issuTrgterNm != "" and (viewType == null or viewType == "")'>
+			AND (APPLCNT_NM LIKE CONCAT('%', #{issuTrgterNm}, '%') OR 
+				ISSU_TRGTER_NM LIKE CONCAT('%', #{issuTrgterNm}, '%')
+			)
+		</if>
+		<if test='bgnIssuOn != null and bgnIssuOn != "" and (viewType == null or viewType == "")'>
+			AND CONVERT(VARCHAR(10), ISSU_DE, 23) &gt;= #{bgnIssuOn}
+		</if>
+		<if test='endIssuOn != null and endIssuOn != "" and (viewType == null or viewType == "")'>
+			AND CONVERT(VARCHAR(10), ISSU_DE, 23) &lt;= #{endIssuOn}
+		</if>
+		<if test='grad != null and grad != "" and (viewType == null or viewType == "")'>
+			AND A.GRAD = #{grad}
+		</if>
+		<if test='jssfcNo != null and jssfcNo != "" and (viewType == null or viewType == "")'>
+			AND A.JSSFC_NO = #{jssfcNo}
+		</if>
+		<if test='chrgBrffc != null and chrgBrffc != "" and (viewType == null or viewType == "")'>
+			AND A.CHRG_BRFFC = #{chrgBrffc}
+		</if>
+		<if test='sptSe != null and sptSe != "" and (viewType == null or viewType == "")'>
+			AND A.SPT_SE = #{sptSe}
+		</if>
+	</sql>
+	
+	<select id="selectCrtfIssuListCnt" parameterType="CrtfIssuSearchVO" resultType="int">
+		SELECT 
+			COUNT(1)
+		FROM(
+			SELECT 
+				A.FEE_RDCXPT_REQST,
+				(SELECT TOP 1 SANCTN_STTUS FROM SANCTN_PROGRS  WHERE SM.SANCTN_NO = SANCTN_NO ORDER BY SANCTN_PROGRS_NO DESC)SANCTN_STTUS
+			FROM CRTF_ISSU B
+				INNER JOIN CRTF_REQST A
+					ON A.REQST_NO = B.REQST_NO 
+				LEFT JOIN SANCTN_MAIN SM
+	 				ON A.REQST_NO = SM.DOC_NO
+	 				AND SM.SANCTN_KND = 'ARCS0002'
+		<include refid="IssuListWhere" />
+		) A
+		WHERE A.SANCTN_STTUS = 'APRV0005'
+	</select>
+	
+	<select id="selectCrtfIssuList" parameterType="CrtfIssuSearchVO" resultType="CrtfIssuVO">
+		SELECT *  
+		FROM(
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY A.REQST_NO DESC, A.ISSU_NO) AS ROWNUM,
+				*  
+			FROM(
+				SELECT
+					STUFF((
+						SELECT  ','+ISSU_NO
+						FROM CRTF_ISSU WHERE REQST_NO = A.REQST_NO
+						FOR XML PATH('')
+					),1,1,'') ISSU_NO,
+					A.SPT_SE,
+					C.CD_NM SPT_SE_NM,
+					CONVERT(VARCHAR(10), B.ISSU_DE , 23) ISSU_DE,
+					A.REQST_NO,
+					ISSU_TRGTER_NM,
+					ISSU_TRGTER_IHIDNUM,
+					A.GRAD,
+					D.CD_NM GRAD_NM,
+					A.JSSFC_NO,
+					E.JSSFC_NM JSSFC_NM,
+					ISSU_CO,
+					ISSU_AMOUNT,
+					A1.명칭 CHRG_BRFFC,
+					(
+						CASE
+							WHEN F.USER_NAME IS NOT NULL THEN F.USER_NAME
+							WHEN A.FEE_RDCXPT_REQST ='Y' OR A.STATE_MATTER_ADIT_AT = 'Y' THEN A21.USER_NAME
+							ELSE A.APPLCNT_NM
+						END
+					) SANCTN_NM,
+					A.RECPT_MTH,
+					ISNULL(G.CD_NM , '') RECPT_MTH_NM,
+					CONVERT(VARCHAR(10), A.RQSTDT, 23) RQSTDT,
+					A.RGST_ID,
+					A.FEE_RDCXPT_REQST,
+					(SELECT TOP 1 SANCTN_STTUS FROM SANCTN_PROGRS  WHERE SM.SANCTN_NO = SANCTN_NO ORDER BY SANCTN_PROGRS_NO DESC)SANCTN_STTUS
+				FROM CRTF_ISSU B
+					INNER JOIN CRTF_REQST A
+						ON A.REQST_NO = B.REQST_NO
+					LEFT JOIN epdbs_link.epdbs.dbo.공제회 A1
+						ON A.CHRG_BRFFC = A1.인덱스
+					LEFT JOIN FEE_CRTF_PROGRS A2
+						ON A.REQST_NO = A2.REQST_NO
+						AND A2.PROGRS_STTUS = 'FEEA0002'
+					LEFT JOIN epdbs_link.sso.dbo.V_USER A21
+						ON A21.USER_ID = A2.RGST_ID
+					LEFT JOIN CMMN_CD C
+						ON C.CD_ID = A.SPT_SE
+					LEFT JOIN CMMN_CD D
+						ON D.CD_ID = A.GRAD
+					LEFT JOIN JSSFC_INFO E
+						ON E.JSSFC_NO = A.JSSFC_NO
+					LEFT JOIN epdbs_link.sso.dbo.V_USER F
+						ON F.USER_ID = B.SANCTN_ID
+					LEFT JOIN CMMN_CD G
+						ON G.CD_ID = A.RECPT_MTH
+					LEFT JOIN SANCTN_MAIN SM
+				 		ON A.REQST_NO = SM.DOC_NO
+				 		AND SM.SANCTN_KND = 'ARCS0002'
+				<include refid="IssuListWhere" />
+			) A
+			WHERE A.SANCTN_STTUS = 'APRV0005'
+		)A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+	
+	<select id="selectCrtfReqListXls" parameterType="CrtfIssuSearchVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY A.REQST_NO DESC) AS "번호" ,
+			A1.CD_NM "접수방법",
+			APPLCNT_NM "신청자성명",
+			ISSU_TRGTER_NM "대상자성명",
+			<if test='ihidnumIndictAt == "Y"'>
+				ISSU_TRGTER_IHIDNUM "주민등록번호", 
+			</if>
+			<if test='ihidnumIndictAt != "Y"'>
+				SUBSTRING(ISSU_TRGTER_IHIDNUM, 0, 9)+'******' "주민등록번호", 
+			</if>
+			CONVERT(VARCHAR(10), RQSTDT, 23) "신청일",
+			CONVERT(VARCHAR(10), ISSU_ON, 23) "발급일",
+			ISSU_CO "발급매수",
+			'현금' "결재구분"
+		FROM CRTF_REQST A
+			LEFT JOIN CMMN_CD A1
+				ON A1.CD_ID = A.SPT_SE
+		<include refid="listWhere" />
+	</select>
+	
+	<select id="selectCrtfIssuListXls" parameterType="CrtfIssuSearchVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY A.REQST_NO DESC, B.ISSU_NO) AS "일련번호",
+			CONVERT(VARCHAR(10), B.ISSU_DE , 23) "발급일",
+			STUFF((
+				SELECT  ','+ISSU_NO
+				FROM CRTF_ISSU WHERE REQST_NO = A.REQST_NO
+				FOR XML PATH('')
+			),1,1,'') "발급번호",
+			C.CD_NM "접수방법",
+			ISSU_TRGTER_NM "성명",
+			<if test='ihidnumIndictAt == "Y"'>
+				ISSU_TRGTER_IHIDNUM "주민등록번호", 
+			</if>
+			<if test='ihidnumIndictAt != "Y"'>
+				SUBSTRING(ISSU_TRGTER_IHIDNUM, 0, 9)+'******' "주민등록번호", 
+			</if>
+			E.JSSFC_NM "직종",
+			D.CD_NM "등급",
+			ISSU_CO "발급부수",
+			ISSU_AMOUNT "수수료",
+			A1.명칭 "소속부서",
+			F.USER_NAME "담당자"
+		FROM CRTF_ISSU B
+			INNER JOIN CRTF_REQST A
+				ON A.REQST_NO = B.REQST_NO
+			LEFT JOIN epdbs_link.epdbs.dbo.공제회 A1
+				ON A.CHRG_BRFFC = A1.인덱스
+			LEFT JOIN CMMN_CD C
+				ON C.CD_ID = A.SPT_SE
+			LEFT JOIN CMMN_CD D
+				ON D.CD_ID = A.GRAD
+			LEFT JOIN JSSFC_INFO E
+				ON E.JSSFC_NO = A.JSSFC_NO
+			LEFT JOIN epdbs_link.sso.dbo.V_USER F
+				ON F.USER_ID = B.SANCTN_ID
+			LEFT JOIN CMMN_CD G
+				ON G.CD_ID = A.RECPT_MTH
+			LEFT JOIN SANCTN_MAIN SM
+		 		ON A.REQST_NO = SM.DOC_NO
+		 		AND SM.SANCTN_KND = 'ARCS0002'
+		 	LEFT JOIN SANCTN_PROGRS SP
+		 		ON SM.SANCTN_NO = SP.SANCTN_NO
+		 		AND SP.SANCTN_PROGRS_NO IN (
+		 			SELECT MAX(SANCTN_PROGRS_NO)
+		 			FROM SANCTN_PROGRS
+		 			GROUP BY SANCTN_NO
+		 		)
+		<include refid="IssuListWhere" />
+		AND SP.SANCTN_STTUS = 'APRV0005'
+	</select>
+
+	<!-- 수수료감면 신청 리스트 -->
+	<select id="selectCrtfReqFeeRdcxptList" parameterType="CrtfIssuSearchVO" resultType="CrtfIssuVO">
+		SELECT A.*
+		FROM(
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY MAX(A.REQST_NO) DESC) AS ROWNUM ,
+				(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = MAX(A.SPT_SE)) SPT_SE_NM,
+				MAX(A.REQST_NO) REQST_NO,
+				MAX(APPLCNT_NM) APPLCNT_NM,
+				ISNULL(CONVERT(VARCHAR(10), MAX(A.RQSTDT), 23), '') RQSTDT,
+				ISNULL(CONVERT(VARCHAR(10), MAX(ISSU_ON), 23), '') ISSU_ON,
+				MAX(ISSU_TRGTER_IHIDNUM) ISSU_TRGTER_IHIDNUM,
+				MAX(ISSU_TRGTER_NM) ISSU_TRGTER_NM,
+				MAX(RECPT_MTH) RECPT_MTH,
+				(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = MAX(A.RECPT_MTH)) RECPT_MTH_NM,
+				MAX(SETLE_MTH) SETLE_MTH,
+				(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = MAX(A.SETLE_MTH)) SETLE_MTH_NM,
+				MAX(JSSFC_NO) JSSFC_NO,
+				MAX(ISSU_CO) ISSU_CO,
+				MAX(A.RGST_ID) RGST_ID,
+				MAX(DETAIL_HIST_INCLS_AT) DETAIL_HIST_INCLS_AT,
+				MAX(IHIDNUM_OTHBC_AT) IHIDNUM_OTHBC_AT,
+				MAX(FEE_RDCXPT_REQST) FEE_RDCXPT_REQST,
+				Max(P.SANCTN_STTUS) SANCTN_STTUS	-- 결재상태
+				
+			FROM CRTF_REQST A, SANCTN_MAIN M, SANCTN_PROGRS P
+			WHERE A.REQST_NO = M.DOC_NO 
+			AND M.SANCTN_NO = P.SANCTN_NO 
+			AND FEE_RDCXPT_REQST='Y'	--수수료감면 신청
+			AND P.SANCTN_KND = 'ARCS0002'	--결재코드 : 수수료감면 신청
+			AND DELETE_AT = 'N'
+			<if test='jumin1 != null and jumin1 != ""'>
+				AND (
+					APPLCNT_IHIDNUM LIKE CONCAT(#{jumin1} , '%')
+					OR APPLCNT_IHIDNUM LIKE CONCAT(#{jumin1} , '%')
+				)
+			</if>
+			<if test='jumin2 != null and jumin2 != ""'>
+				AND (
+					APPLCNT_IHIDNUM LIKE CONCAT('%', #{jumin2})
+					OR APPLCNT_IHIDNUM LIKE CONCAT('%', #{jumin2})
+				)
+			</if>
+			<if test='applcntNm != null and applcntNm != ""'>
+				AND APPLCNT_NM LIKE CONCAT('%', #{applcntNm}, '%')
+			</if>
+			<if test='issuTrgterNm != null and issuTrgterNm != ""'>
+				AND ISSU_TRGTER_NM LIKE CONCAT('%', #{issuTrgterNm}, '%')
+			</if>
+			<if test='bgnRqstdt != null and bgnRqstdt != ""'>
+				AND CONVERT(VARCHAR(10), RQSTDT, 23) &gt;= #{bgnRqstdt}
+			</if>
+			<if test='endRqstdt != null and endRqstdt != ""'>
+				AND CONVERT(VARCHAR(10), RQSTDT, 23) &lt;= #{endRqstdt}
+			</if>
+			<if test='bgnIssuOn != null and bgnIssuOn != ""'>
+				AND CONVERT(VARCHAR(10), ISSU_ON, 23) &gt;= #{bgnIssuOn}
+			</if>
+			<if test='endIssuOn != null and endIssuOn != ""'>
+				AND CONVERT(VARCHAR(10), ISSU_ON, 23) &lt;= #{endIssuOn}
+			</if>
+			<if test='setleMth != null and setleMth != "" and se == "req"'>
+				AND SETLE_MTH = #{setleMth}
+			</if>
+			<if test='reqstNo != null and reqstNo != "" and se == "req"'>
+				AND A.REQST_NO = #{reqstNo}
+			</if>
+			<if test='se != null and se != "" and se == "req"'>
+				AND A.REQST_NO IN (SELECT DISTINCT REQST_NO FROM CRTF_ISSU WHERE ISSU_DE IS NULL)
+			</if>
+			<if test='se != null and se != "" and se == "prt"'>
+				AND A.REQST_NO IN (SELECT DISTINCT REQST_NO FROM CRTF_ISSU WHERE ISSU_DE IS NOT NULL)
+			</if>
+			<if test='chrgBrffc != null and chrgBrffc != ""'>
+				AND (SELECT DDC_ASTC_CD FROM EPDBS_LINK.SSO.DBO.V_USER WHERE USER_ID = B.SANCTN_ID) = #{chrgBrffc}
+			</if>
+			<if test="feeRdcxptStat != '' and feeRdcxptStat != null">	<!-- 수수료감면 신청 검색조건 -->
+			 	AND P.SANCTN_STTUS = #{feeRdcxptStat}
+			 </if>
+			GROUP BY P.SANCTN_NO
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+
+	<!-- 수수료감면 신청 리스트 카운트 -->
+	<select id="selectCrtfReqFeeRdcxptListCnt" parameterType="CrtfIssuSearchVO" resultType="int">
+		SELECT COUNT(A.SANCTN_NO) 
+		FROM (
+			SELECT 
+				P.SANCTN_NO
+			FROM CRTF_REQST A, SANCTN_MAIN M, SANCTN_PROGRS P
+			WHERE A.REQST_NO = M.DOC_NO 
+			AND M.SANCTN_NO = P.SANCTN_NO 
+			AND FEE_RDCXPT_REQST='Y'	--수수료감면 신청
+			AND P.SANCTN_KND = 'ARCS0002'	--결재코드 : 수수료감면 신청
+			AND DELETE_AT = 'N'
+			<if test='jumin1 != null and jumin1 != ""'>
+				AND (
+					APPLCNT_IHIDNUM LIKE CONCAT(#{jumin1} , '%')
+					OR APPLCNT_IHIDNUM LIKE CONCAT(#{jumin1} , '%')
+				)
+			</if>
+			<if test='jumin2 != null and jumin2 != ""'>
+				AND (
+					APPLCNT_IHIDNUM LIKE CONCAT('%', #{jumin2})
+					OR APPLCNT_IHIDNUM LIKE CONCAT('%', #{jumin2})
+				)
+			</if>
+			<if test='applcntNm != null and applcntNm != ""'>
+				AND APPLCNT_NM LIKE CONCAT('%', #{applcntNm}, '%')
+			</if>
+			<if test='issuTrgterNm != null and issuTrgterNm != ""'>
+				AND ISSU_TRGTER_NM LIKE CONCAT('%', #{issuTrgterNm}, '%')
+			</if>
+			<if test='bgnRqstdt != null and bgnRqstdt != ""'>
+				AND CONVERT(VARCHAR(10), RQSTDT, 23) &gt;= #{bgnRqstdt}
+			</if>
+			<if test='endRqstdt != null and endRqstdt != ""'>
+				AND CONVERT(VARCHAR(10), RQSTDT, 23) &lt;= #{endRqstdt}
+			</if>
+			<if test='bgnIssuOn != null and bgnIssuOn != ""'>
+				AND CONVERT(VARCHAR(10), ISSU_ON, 23) &gt;= #{bgnIssuOn}
+			</if>
+			<if test='endIssuOn != null and endIssuOn != ""'>
+				AND CONVERT(VARCHAR(10), ISSU_ON, 23) &lt;= #{endIssuOn}
+			</if>
+			<if test='setleMth != null and setleMth != "" and se == "req"'>
+				AND SETLE_MTH = #{setleMth}
+			</if>
+			<if test='reqstNo != null and reqstNo != "" and se == "req"'>
+				AND A.REQST_NO = #{reqstNo}
+			</if>
+			<if test='se != null and se != "" and se == "req"'>
+				AND A.REQST_NO IN (SELECT DISTINCT REQST_NO FROM CRTF_ISSU WHERE ISSU_DE IS NULL)
+			</if>
+			<if test='se != null and se != "" and se == "prt"'>
+				AND A.REQST_NO IN (SELECT DISTINCT REQST_NO FROM CRTF_ISSU WHERE ISSU_DE IS NOT NULL)
+			</if>
+			<if test='chrgBrffc != null and chrgBrffc != ""'>
+				AND (SELECT DDC_ASTC_CD FROM EPDBS_LINK.SSO.DBO.V_USER WHERE USER_ID = B.SANCTN_ID) = #{chrgBrffc}
+			</if>
+			 <if test="feeRdcxptStat != '' and feeRdcxptStat != null">	<!-- 수수료감면 신청 검색조건 -->
+			 	AND P.SANCTN_STTUS = #{feeRdcxptStat}
+			 </if>
+			 
+			GROUP BY P.SANCTN_NO
+			)A
+	</select>
+
+	<!-- 주 직종 코드(비기능직은 제외한 제일많이 일한 직종) -->	
+	<select id="selectMainJssfcCd" parameterType="CrtfIssuVO" resultType="HashMap">
+		SELECT 
+			TOP 1
+			A.IHIDNUM,
+			A.JSSFC_NO,
+			A.WORK_DAYCNT,
+			B.JSSFC_NM,
+			B.STDR_DAYCNT 
+		FROM USER_STAT (READUNCOMMITTED) A
+			INNER JOIN JSSFC_INFO B
+				ON A.JSSFC_NO = B.JSSFC_NO
+		WHERE IHIDNUM = CONVERT(VARCHAR(14), #{issuTrgterIhidnum})
+		AND B.SE = 'JISE0001'	-- 기능직 (비기능직 : JISE0002)
+		AND B.ACTVTY_AT = 'Y'	-- 활성여부
+		ORDER BY WORK_DAYCNT DESC
+	</select>	
+
+	<!-- 미리보기 등록 -->
+	<insert id="insertCrtfIssuPreView">	
+		INSERT INTO CRTF_REQST_PREVIEW(
+			APPLCNT_NM, APPLCNT_IHIDNUM, APPLCNT_MOBLPHON, ISSU_TRGTER_IHIDNUM, ISSU_TRGTER_NM,
+			ISSU_TRGTER_MOBLPHON, JSSFC_NO, JSSFC_NM, DETAIL_HIST_INCLS_AT, RQSTDT, IHIDNUM_OTHBC_AT, ISSU_CO
+		) VALUES (
+			#{applcntNm}, #{applcntIhidnum}, #{applcntMoblphon}, #{issuTrgterIhidnum}, #{issuTrgterNm}, 
+			#{issuTrgterMoblphon}, #{jssfcNoSub}, #{jssfcNm}, #{detailHistInclsAt}, GETDATE(), #{ihidnumOthbcAt}, #{issuCo}
+		)
+		<selectKey keyProperty="reqstNo" resultType="int" order="AFTER">
+			SELECT ISNULL(MAX(REQST_NO), 0)
+			FROM CRTF_REQST_PREVIEW
+		</selectKey>
+	</insert>
+	
+	<!-- 진행상태 목록갯수 -->
+	<select id="selectProgrsCnt" resultType="int">
+		SELECT COUNT(1)
+		FROM FEE_CRTF_PROGRS
+		WHERE REQST_NO = #{reqstNo}
+	</select>
+	
+	<!-- 신청내역관리의 수수료감면신청 결재상태 리스트 -->
+	<select id="selectSanctnList" parameterType="CrtfIssuVO" resultType="kr.or.cwma.admin.crtfIssu.vo.FeeCrtfProgrsVO">
+		SELECT 
+			A.USER_NAME
+			,A.BRFFC_NM
+			,F.RGST_DT
+			,F.RPLY_TMLMT
+			,F.PROGRS_RESN
+			,C.CD_NM PROGRS_STTUS_NM
+		FROM FEE_CRTF_PROGRS F
+			LEFT JOIN epdbs_link.sso.dbo.V_USER A
+				ON A.USER_ID = F.RGST_ID
+			LEFT JOIN TRGET_ROLE_RELATE B
+				ON A.USER_ID = B.TRGET
+				AND B.SE = 'TRSE0001'
+			LEFT JOIN TRGET_ROLE_RELATE B1
+				ON A.DEPT_CD = B1.TRGET
+				AND B1.SE = 'TRSE0002'
+			LEFT JOIN CMMN_CD C
+				ON PARNTS_CD_ID = 'FEEA0000'
+				AND CD_ID = F.PROGRS_STTUS
+		WHERE F.REQST_NO = #{reqstNo}
+		ORDER BY F.SN DESC 
+	</select>
+
+	<!-- 진행상태 등록 -->
+	<insert id="insertFeeProgrs">
+		<selectKey keyProperty="sn" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) + 1
+			FROM FEE_CRTF_PROGRS
+		</selectKey>
+		INSERT INTO FEE_CRTF_PROGRS(
+			SN, REQST_NO, PROGRS_STTUS, PROGRS_RESN, PROGRS_DE, RPLY_TMLMT, RGST_ID, RGST_DT
+		) VALUES (
+			#{sn}, #{reqstNo}, #{progrsSttus}, #{progrsResn}, #{progrsDe}, #{rplyTmlmt}, #{rgstId}, GETDATE()
+		)
+	</insert>
+	
+	<!-- 결재자 수정  -->
+	<update id="updateCrtfReqstChrg" parameterType="CrtfIssuVO">
+		<selectKey order="BEFORE" resultType="String" keyProperty="rceptNo">
+			SELECT COUNT(1)+1 RCEPT_NO
+			FROM CRTF_REQST 
+			WHERE RCEPT_NO LIKE CONVERT(VARCHAR(2), GETDATE(), 2) + '-4' + RIGHT(CONVERT(VARCHAR(6), GETDATE(), 12), 4) + '%'
+		</selectKey>
+		
+		UPDATE CRTF_REQST
+		SET RCEPT_NO = CONVERT(VARCHAR(2), GETDATE(), 2) + '-4' + RIGHT(CONVERT(VARCHAR(6), GETDATE(), 12), 4) + '-' + REPLICATE(0, 4 - LEN(#{rceptNo})) + #{rceptNo}
+			,CHRG_BRFFC = #{chrgBrffc}
+		WHERE REQST_NO = #{reqstNo}
+	</update>
+	
+</mapper>

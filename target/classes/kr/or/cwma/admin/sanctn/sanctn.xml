@@ -1,0 +1,914 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.sanctn.mapper.SanctnMapper">
+
+	<select id="selectCwmaDdcAsctInfoList" resultType="CwmaDdcAsctInfoVO">
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY 인덱스,상위부서인덱스,부서장ID DESC) AS ROWNUM
+			,	인덱스							AS	ddcAsctCd
+			,	상위부서인덱스					AS	upperDdcAsctCd
+			,	부서장ID						AS	brffcHedId
+			,	정렬순서						AS	sort
+			,	명칭							AS	brffcNm
+			,	약칭							AS	brffcAbrvtNm
+			,	우편번호						AS	zip
+			,	주소							AS	addr
+			,	전화번호						AS	telNo
+			,	팩스번호						AS	faxNo
+		FROM epdbs_link.epdbs.dbo.공제회
+		WHERE 정렬순서 &lt; 100
+		AND 인덱스 NOT IN ('07102')
+	</select>
+	
+	<sql id="listProgrsWhere">
+		AND A.PROGRS_STTUS IN ('CAPG0006', 'CAPG0007', 'FEEA0006')
+		AND (CASE WHEN ISNULL(D1.SANCTN_STTUS, '') = '' THEN 'APRV0001' ELSE D1.SANCTN_STTUS END) IN ('APRV0001', 'APRV0002' , 'APRV0003', 'APRV0004')
+		<if test='se != null and se != ""'>
+			AND A.SE = #{se}
+		</if>
+		<if test='bgnDrftDe != null and bgnDrftDe != ""'>
+			AND F1.RGST_DT &gt;= CONVERT(DATETIME, CONCAT(#{bgnDrftDe}, ' 00:00:00'))
+		</if>
+		<if test='endDrftDe != null and endDrftDe != ""'>
+			AND F1.RGST_DT &lt;= CONVERT(DATETIME, CONCAT(#{endDrftDe}, ' 23:59:59'))
+		</if>
+		<if test='endDrftDe != null and endDrftDe != ""'>
+			AND F1.RGST_ID = #{drfter}
+		</if>
+		<if test='chrgBrffc != null and chrgBrffc != ""'>
+			AND A.CHRG_BRFFC = #{chrgBrffc}
+		</if>
+		<if test='nm != null and nm != ""'>
+			AND A.NM = #{nm}
+		</if>
+		<if test='jumin1 != null and jumin1 != "" and jumin2 != null and jumin2 != ""'>
+			AND A.IHIDNUM = CONCAT(#{jumin1}, '-', #{jumin2})
+		</if>
+		<if test='sanctnSttus != null and sanctnSttus != ""'>
+			<if test='sanctnSttus == "APRV0004"'>
+				AND D1.SANCTN_STTUS = #{sanctnSttus}
+			</if>
+			<if test='sanctnSttus == "APRV0002"'>
+				AND D1.SANCTN_STTUS IN ('APRV0002', 'APRV0003')
+			</if>
+		</if>
+	</sql>
+	
+	<!-- 경력인정신고 조회-->
+	<select id="selectSanctnProgrsListCnt" parameterType="SanctnSearchVO" resultType="int">
+		SELECT 
+			COUNT(1)
+		FROM (
+			SELECT
+				'ARCS0001' SANCTN_KND, A.CAREER_NO, SPT_SE, SE, RCEPT_NO, 
+				NM, CHRG_BRFFC, IHIDNUM, B.PROGRS_STTUS
+			FROM CAREER_DECLARE A
+        		LEFT JOIN CAREER_PROGRS B
+					ON B.CAREER_NO = A.CAREER_NO
+					AND B.PROGRS_NO IN (
+						SELECT MAX(PROGRS_NO)
+						FROM CAREER_PROGRS
+						GROUP BY CAREER_NO
+					)
+				UNION ALL
+			SELECT
+				'ARCS0005' SANCTN_KND, A.SN, SPT_SE, 'ARCS0005', RCEPT_NO, 
+				ISNULL(ISNULL(ISNULL(A1.NM, A2.상호), A3.기관명), A4.USER_NAME) NM, CHRG_BRFFC, '', A5.PROGRS_STTUS
+			FROM HOLD_CRTF A
+				LEFT JOIN USER_INFO A1
+					ON A.RGST_ID = A1.USER_ID
+				LEFT JOIN epdbs_link.epdbs.dbo.업체 A2
+					ON A1.BIZNO = A2.사업자등록번호
+					AND A1.SE = 'USSE0002'
+				LEFT JOIN epdbs_link.epdbs.dbo.수요기관_NEW A3
+					ON A1.BIZNO = A3.사업자등록번호
+					AND A1.SE = 'USSE0004'
+				LEFT JOIN epdbs_link.sso.dbo.V_USER A4
+					ON A.RGST_ID = A4.USER_ID
+				LEFT JOIN HOLD_CRTF_PROGRS A5
+					ON A.SN = A5.HOLD_CRTF_SN
+					AND A5.SN IN (
+						SELECT MAX(SN)
+						FROM HOLD_CRTF_PROGRS
+						GROUP BY HOLD_CRTF_SN
+					)
+				UNION ALL
+			/*수수료감면신청 리스트 추가*/
+			SELECT
+				'ARCS0002' SANCTN_KND, A.REQST_NO CAREER_NO, SPT_SE, 'ARCS0002' SE,	RCEPT_NO, 
+				APPLCNT_NM, CHRG_BRFFC, APPLCNT_IHIDNUM, F.PROGRS_STTUS
+			FROM CRTF_REQST A
+				INNER JOIN FEE_CRTF_PROGRS F
+					ON A.REQST_NO = F.REQST_NO 
+					AND F.SN IN (
+						SELECT MAX(SN)
+						FROM FEE_CRTF_PROGRS
+						GROUP BY REQST_NO
+					)
+					AND F.PROGRS_STTUS = 'FEEA0006'
+			WHERE A.FEE_RDCXPT_REQST = 'Y'
+			OR A.STATE_MATTER_ADIT_AT = 'Y'
+			/*---수수료감면----------*/
+		) A
+			LEFT JOIN epdbs_link.epdbs.dbo.공제회 A1
+				ON A1.인덱스 =  A.CHRG_BRFFC
+			LEFT JOIN CMMN_CD A2
+				ON A2.CD_ID = A.SPT_SE
+			LEFT JOIN CMMN_CD A3
+				ON A3.CD_ID = A.SE
+        	LEFT JOIN CAREER_PROGRS B
+				ON B.CAREER_NO = A.CAREER_NO
+				AND B.PROGRS_NO IN (
+					SELECT MAX(PROGRS_NO)
+					FROM CAREER_PROGRS
+					WHERE PROGRS_STTUS = 'CAPG0002'
+					GROUP BY CAREER_NO
+				)
+			LEFT JOIN CMMN_CD A4
+				ON A4.CD_ID = A.PROGRS_STTUS
+			LEFT JOIN SANCTN_MAIN D
+				ON D.DOC_NO = A.CAREER_NO
+				AND D.SANCTN_KND = A.SANCTN_KND
+			LEFT JOIN SANCTN_PROGRS D1
+				ON D.SANCTN_NO = D1.SANCTN_NO
+				AND D1.SANCTN_PROGRS_NO IN (
+					SELECT MAX(SANCTN_PROGRS_NO) 
+					FROM SANCTN_PROGRS 
+					GROUP BY SANCTN_NO
+				)
+			LEFT JOIN CMMN_CD D11
+				ON D1.SANCTN_STTUS = D11.CD_ID
+			LEFT JOIN SANCTN_MAIN F
+				ON F.DOC_NO = A.CAREER_NO
+				AND F.SANCTN_KND = A.SANCTN_KND
+			LEFT JOIN epdbs_link.sso.dbo.V_USER F0
+				ON F.SANCTN_ID = F0.USER_ID
+			LEFT JOIN SANCTN_PROGRS F1
+				ON F.SANCTN_NO = F1.SANCTN_NO
+				AND F1.SANCTN_PROGRS_NO IN (
+					SELECT MAX(SANCTN_PROGRS_NO) 
+					FROM SANCTN_PROGRS 
+					WHERE SANCTN_STTUS IN ('APRV0002', 'APRV0003') 
+					GROUP BY SANCTN_NO
+				)
+			LEFT JOIN epdbs_link.sso.dbo.V_USER F11
+				ON F1.RGST_ID = F11.USER_ID
+		WHERE 1 = 1
+		<include refid="listProgrsWhere" />
+	</select>
+	
+	<!-- 결재진행 목록 조회 -->
+	<select id="selectSanctnProgrsList" parameterType="SanctnSearchVO" resultType="SanctnVO">
+		SELECT *  
+		FROM( 
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY A.CAREER_NO DESC) AS ROWNUM,
+				A.CAREER_NO,
+         		A.SPT_SE,
+         		A2.CD_NM SPT_SE_NM,
+         		A.SE,
+				A3.CD_NM SE_NM,
+				CASE WHEN A.SE = 'ARCS0002' THEN CONVERT(VARCHAR(10),F1.RGST_DT,23) ELSE B.PROGRS_DE END RCEPT_DE,
+         		RCEPT_NO,
+				NM,
+         		ISNULL(A4.CD_NM, '신청') PROGRS_STTUS,
+				A1.명칭 CHRG_BRFFC_NM,
+				CONVERT(VARCHAR(10), F.RGST_DT,23) DRAFT_DE,
+				F11.USER_NAME DRAFTER,
+				F0.USER_NAME SANCTNER,
+				ISNULL(D1.SANCTN_STTUS, 'APRV0001') SANCTN_STTUS,
+				ISNULL(D11.CD_NM, '결재대기') SANCTN_STTUS_NM,
+				A.SANCTN_KND
+			FROM (
+				SELECT
+					'ARCS0001' SANCTN_KND, A.CAREER_NO, SPT_SE, SE, RCEPT_NO, 
+					NM, CHRG_BRFFC, IHIDNUM, B.PROGRS_STTUS
+				FROM CAREER_DECLARE A
+	        		LEFT JOIN CAREER_PROGRS B
+						ON B.CAREER_NO = A.CAREER_NO
+						AND B.PROGRS_NO IN (
+							SELECT MAX(PROGRS_NO)
+							FROM CAREER_PROGRS
+							GROUP BY CAREER_NO
+						)
+					UNION ALL
+				SELECT
+					'ARCS0005' SANCTN_KND, A.SN, SPT_SE, 'ARCS0005', RCEPT_NO, 
+					ISNULL(ISNULL(ISNULL(A1.NM, A2.상호), A3.기관명), A4.USER_NAME) NM, CHRG_BRFFC, '', A5.PROGRS_STTUS
+				FROM HOLD_CRTF A
+					LEFT JOIN USER_INFO A1
+						ON A.RGST_ID = A1.USER_ID
+					LEFT JOIN epdbs_link.epdbs.dbo.업체 A2
+						ON A1.BIZNO = A2.사업자등록번호
+						AND A1.SE = 'USSE0002'
+					LEFT JOIN epdbs_link.epdbs.dbo.수요기관_NEW A3
+						ON A1.BIZNO = A3.사업자등록번호
+						AND A1.SE = 'USSE0004'
+					LEFT JOIN epdbs_link.sso.dbo.V_USER A4
+						ON A.RGST_ID = A4.USER_ID
+					LEFT JOIN HOLD_CRTF_PROGRS A5
+						ON A.SN = A5.HOLD_CRTF_SN
+						AND A5.SN IN (
+							SELECT MAX(SN)
+							FROM HOLD_CRTF_PROGRS
+							GROUP BY HOLD_CRTF_SN
+						)
+					UNION ALL
+				/*수수료감면신청 리스트 추가*/
+				SELECT
+					'ARCS0002' SANCTN_KND, A.REQST_NO CAREER_NO, SPT_SE, 'ARCS0002' SE,	RCEPT_NO, 
+					APPLCNT_NM, CHRG_BRFFC, APPLCNT_IHIDNUM, F.PROGRS_STTUS
+				FROM CRTF_REQST A
+					INNER JOIN FEE_CRTF_PROGRS F
+						ON A.REQST_NO = F.REQST_NO 
+						AND F.SN IN (
+							SELECT MAX(SN)
+							FROM FEE_CRTF_PROGRS
+							GROUP BY REQST_NO
+						)
+						AND F.PROGRS_STTUS = 'FEEA0006'
+				WHERE A.FEE_RDCXPT_REQST = 'Y'
+				OR A.STATE_MATTER_ADIT_AT = 'Y'
+				/*---수수료감면----------*/
+			) A
+				LEFT JOIN epdbs_link.epdbs.dbo.공제회 A1
+					ON A1.인덱스 =  A.CHRG_BRFFC
+				LEFT JOIN CMMN_CD A2
+					ON A2.CD_ID = A.SPT_SE
+				LEFT JOIN CMMN_CD A3
+					ON A3.CD_ID = A.SE
+	        		LEFT JOIN CAREER_PROGRS B
+					ON B.CAREER_NO = A.CAREER_NO
+					AND B.PROGRS_NO IN (
+						SELECT MAX(PROGRS_NO)
+						FROM CAREER_PROGRS
+						WHERE PROGRS_STTUS = 'CAPG0002'
+						GROUP BY CAREER_NO
+					)
+				LEFT JOIN CMMN_CD A4
+					ON A4.CD_ID = A.PROGRS_STTUS
+				LEFT JOIN SANCTN_MAIN D
+					ON D.DOC_NO = A.CAREER_NO
+					AND D.SANCTN_KND = A.SANCTN_KND
+				LEFT JOIN SANCTN_PROGRS D1
+					ON D.SANCTN_NO = D1.SANCTN_NO
+					AND D1.SANCTN_PROGRS_NO IN (
+						SELECT MAX(SANCTN_PROGRS_NO) 
+						FROM SANCTN_PROGRS 
+						GROUP BY SANCTN_NO
+					)
+				LEFT JOIN CMMN_CD D11
+					ON D1.SANCTN_STTUS = D11.CD_ID
+				LEFT JOIN SANCTN_MAIN F
+					ON F.DOC_NO = A.CAREER_NO
+					AND F.SANCTN_KND = A.SANCTN_KND
+				LEFT JOIN epdbs_link.sso.dbo.V_USER F0
+					ON F.SANCTN_ID = F0.USER_ID
+				LEFT JOIN SANCTN_PROGRS F1
+					ON F.SANCTN_NO = F1.SANCTN_NO
+					AND F1.SANCTN_PROGRS_NO IN (
+						SELECT MAX(SANCTN_PROGRS_NO) 
+						FROM SANCTN_PROGRS 
+						WHERE SANCTN_STTUS IN ('APRV0002', 'APRV0003') 
+						GROUP BY SANCTN_NO
+					)
+				LEFT JOIN epdbs_link.sso.dbo.V_USER F11
+					ON F1.RGST_ID = F11.USER_ID
+			WHERE 1 = 1
+			<include refid="listProgrsWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+	
+	<sql id="listWhere">
+		WHERE 1=1
+		<if test='sanctnList == "PROGRS"'>
+			AND D.SANCTN_KND = 'ARCS0001'
+			AND ISNULL(F.SANCTN_STTUS, 'APRV0001') IN ('APRV0001', 'APRV0002' , 'APRV0003', 'APRV0004')
+		</if>
+		<if test='sanctnList == "WAIT"'>
+			AND D.SANCTN_KND IN ('ARCS0001', 'ARCS0005', 'ARCS0002')
+			AND ISNULL(F.SANCTN_STTUS, 'APRV0001') IN ('APRV0002', 'APRV0003')
+			AND A.SANCTN_ID IN (SELECT #{sanctnId} UNION ALL
+								SELECT RGST_ID FROM SANCTN_AGNCY_ID WHERE DELETE_AT = 'N' AND AGNCY_ID = #{sanctnId}
+								AND CONVERT(VARCHAR(10), GETDATE(), 23) BETWEEN BGNDE AND ENDDE)
+		</if>
+		<if test='sanctnList == "COMPT"'>
+			AND ISNULL(F.SANCTN_STTUS, 'APRV0001') IN ('APRV0005', 'APRV0006')
+		</if>
+		<if test='se != null and se != ""'>
+			<if test='se == "CASE0001" or se == "CASE0002"'>
+			AND D.SE = #{se}
+			</if>
+			<if test='se != "CASE0001" and se != "CASE0002"'>
+				AND A.SANCTN_KND = #{se}
+			</if>
+		</if>
+		<if test='bgnDrftDe != null and bgnDrftDe != ""'>
+			AND C.RGST_DT &gt;= CONVERT(DATETIME, CONCAT(#{bgnDrftDe}, ' 00:00:00'))
+		</if>
+		<if test='endDrftDe != null and endDrftDe != ""'>
+			AND C.RGST_DT &lt;= CONVERT(DATETIME, CONCAT(#{endDrftDe}, ' 23:59:59'))
+		</if>
+		<if test='drfter != null and drfter != ""'>
+			AND (SELECT USER_NAME FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = C.RGST_ID) = #{drfter}
+		</if>
+		<if test='chrgBrffc != null and chrgBrffc != "" and sanctnList == "COMPT"'>
+			AND (SELECT DDC_ASTC_CD FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = A.SANCTN_ID) = #{chrgBrffc}
+		</if>
+		<if test='nm != null and nm != ""'>
+			AND D.NM = #{nm} 
+		</if>
+		<if test='jumin1 != null and jumin1 != "" and jumin2 != null and jumin2 != ""'>
+			AND D.IHIDNUM = CONCAT(#{jumin1}, '-', #{jumin2})
+		</if>
+		<if test='sanctnSttus != null and sanctnSttus != ""'>
+			<if test='sanctnSttus == "APRV0004"'>
+				AND F.SANCTN_STTUS = #{sanctnSttus}
+			</if>
+			<if test='sanctnSttus == "APRV0002"'>
+				AND F.SANCTN_STTUS IN ('APRV0002', 'APRV0003')
+			</if>
+		</if>
+	</sql>
+	
+	<!-- 결재 대기/완료 목록갯수 조회-->
+	<select id="selectSanctnListCnt" parameterType="SanctnSearchVO" resultType="int">
+		SELECT 
+			COUNT(1)
+		FROM SANCTN_MAIN A
+			LEFT JOIN SANCTN_PROGRS B 
+				ON A.SANCTN_NO = B.SANCTN_NO
+				AND B.SANCTN_STTUS IN ('APRV0005', 'APRV0006')
+				AND B.SANCTN_PROGRS_NO IN (
+					SELECT
+						MAX(SANCTN_PROGRS_NO)
+					FROM SANCTN_PROGRS 
+					GROUP BY SANCTN_NO, SANCTN_KND
+				)
+			LEFT JOIN SANCTN_PROGRS C 
+				ON A.SANCTN_NO = C.SANCTN_NO
+				AND C.SANCTN_PROGRS_NO IN (
+					SELECT
+						MAX(SANCTN_PROGRS_NO)
+					FROM SANCTN_PROGRS 
+					WHERE SANCTN_STTUS IN ('APRV0002', 'APRV0003')
+					GROUP BY SANCTN_NO, SANCTN_KND
+				)
+			LEFT JOIN (
+				SELECT 
+					SPT_SE
+					,SE
+					,NM
+					,A.CAREER_NO DOC_NO
+					,'ARCS0001' SANCTN_KND
+					,CONVERT(VARCHAR(10), C.RGST_DT, 23) RCEPT_DE
+					,A.RCEPT_NO
+					,A.CHRG_BRFFC
+					,A.IHIDNUM
+				FROM CAREER_DECLARE A 
+					LEFT JOIN CAREER_PROGRS B 
+						ON A.CAREER_NO = B.CAREER_NO
+						AND B.PROGRS_NO IN (
+							SELECT 
+								MAX(PROGRS_NO)
+							FROM CAREER_PROGRS 
+							WHERE PROGRS_STTUS IN ('CAPG0006', 'CAPG0007') 
+							GROUP BY CAREER_NO
+						) 
+					LEFT JOIN CAREER_PROGRS C 
+						ON A.CAREER_NO = C.CAREER_NO
+						AND C.PROGRS_NO IN (
+							SELECT 
+								MAX(PROGRS_NO)
+							FROM CAREER_PROGRS 
+							WHERE PROGRS_STTUS = 'CAPG0002'
+							GROUP BY CAREER_NO
+						) 
+				WHERE B.PROGRS_STTUS IN ('CAPG0006', 'CAPG0007')
+					UNION ALL 
+				SELECT 
+					SPT_SE
+					,'' SE
+					,APPLCNT_NM NM
+					,REQST_NO DOC_NO
+					, 'ARCS0002' SANCTN_KND
+					, CONVERT(VARCHAR(10), RGST_DT, 23) RCEPT_DE
+					,RCEPT_NO
+					,'' CHRG_BRFFC
+					,APPLCNT_IHIDNUM IHIDNUM
+				FROM CRTF_REQST
+					UNION ALL	
+				SELECT
+					SPT_SE
+					,'' SE
+					,ISNULL(ISNULL(ISNULL(A1.nm, A2.상호), A3.기관명), A4.USER_NAME) NM
+					,SN DOC_NO
+					, 'ARCS0005' SANCTN_KND
+					, CONVERT(VARCHAR(10), A.REQST_DT, 23) RCEPT_DE
+					,RCEPT_NO
+					,A.CHRG_BRFFC
+					,'' IHIDNUM
+				FROM HOLD_CRTF A
+					LEFT JOIN USER_INFO A1
+						ON A.RGST_ID = A1.USER_ID
+					LEFT JOIN epdbs_link.epdbs.dbo.업체 A2
+						ON A1.BIZNO = A2.사업자등록번호
+						AND A1.SE = 'USSE0002'
+					LEFT JOIN epdbs_link.epdbs.dbo.수요기관_NEW A3
+						ON A1.BIZNO = A3.사업자등록번호
+						AND A1.SE = 'USSE0004'
+					LEFT JOIN epdbs_link.sso.dbo.V_USER A4
+						ON A.RGST_ID = A4.USER_ID
+					UNION ALL
+				SELECT
+					'',
+					'',
+					I.NM,
+					H.SN,
+					'ARCS0003',
+					CONVERT(VARCHAR(10), H.RGST_DT, 23)  RGST_DT,
+					H.RCEPT_NO, 
+					'',
+					I.IHIDNUM
+				FROM ISSU_AGRE H
+					INNER JOIN USER_MAIN_JSSFC(READUNCOMMITTED) I 
+						ON H.IHIDNUM = I.IHIDNUM
+			) D
+				ON D.DOC_NO = A.DOC_NO
+				AND A.SANCTN_KND = D.SANCTN_KND
+			LEFT JOIN (
+				SELECT 
+					*
+				FROM SANCTN_PROGRS 
+				WHERE SANCTN_PROGRS_NO IN (
+					SELECT
+						MAX(SANCTN_PROGRS_NO)
+					FROM SANCTN_PROGRS 
+					GROUP BY SANCTN_NO, SANCTN_KND
+				)
+			) F
+				ON A.SANCTN_NO = F.SANCTN_NO
+		<include refid="listWhere" />
+	</select>
+	
+	<!-- 결재 대기/완료 목록 조회-->
+	<select id="selectSanctnList" parameterType="SanctnSearchVO" resultType="SanctnVO">
+		SELECT *  
+		FROM( 
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY A.SANCTN_NO DESC) AS ROWNUM
+				,D.DOC_NO CAREER_NO
+				,CASE WHEN D.SANCTN_KND = 'ARCS0001' THEN (SELECT CD_NM FROM CMMN_CD WHERE CD_ID = D.SE) 
+					 ELSE (SELECT CD_NM FROM CMMN_CD WHERE CD_ID = A.SANCTN_KND) END SE_NM
+				,D.RCEPT_DE
+				,ISNULL(D.RCEPT_NO,'') RCEPT_NO
+				,D.NM
+				,CONVERT(VARCHAR(10), C.RGST_DT, 23) DRAFT_DE
+				,(SELECT BRFFC_NM FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = C.RGST_ID) CHRG_BRFFC_NM
+				,(SELECT USER_NAME FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = C.RGST_ID) DRAFTER
+				,(SELECT USER_NAME FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = A.SANCTN_ID) SANCTNER
+				,(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = B.SANCTN_STTUS) SANCTN_STTUS_NM
+				,A.SANCTN_KND
+			FROM SANCTN_MAIN A
+				LEFT JOIN SANCTN_PROGRS B 
+					ON A.SANCTN_NO = B.SANCTN_NO
+					AND B.SANCTN_STTUS IN ('APRV0005', 'APRV0006')
+					AND B.SANCTN_PROGRS_NO IN (
+						SELECT
+							MAX(SANCTN_PROGRS_NO)
+						FROM SANCTN_PROGRS 
+						GROUP BY SANCTN_NO, SANCTN_KND
+					)
+				LEFT JOIN SANCTN_PROGRS C 
+					ON A.SANCTN_NO = C.SANCTN_NO
+					AND C.SANCTN_PROGRS_NO IN (
+						SELECT
+							MAX(SANCTN_PROGRS_NO)
+						FROM SANCTN_PROGRS 
+						WHERE SANCTN_STTUS IN ('APRV0002', 'APRV0003')
+						GROUP BY SANCTN_NO, SANCTN_KND
+					)
+				LEFT JOIN (
+					SELECT 
+						SPT_SE
+						,SE
+						,NM
+						,A.CAREER_NO DOC_NO
+						,'ARCS0001' SANCTN_KND
+						,CONVERT(VARCHAR(10), C.RGST_DT, 23) RCEPT_DE
+						,A.RCEPT_NO
+						,A.CHRG_BRFFC
+						,A.IHIDNUM
+					FROM CAREER_DECLARE A 
+						LEFT JOIN CAREER_PROGRS B 
+							ON A.CAREER_NO = B.CAREER_NO
+							AND B.PROGRS_NO IN (
+								SELECT 
+									MAX(PROGRS_NO)
+								FROM CAREER_PROGRS 
+								WHERE PROGRS_STTUS IN ('CAPG0006', 'CAPG0007') 
+								GROUP BY CAREER_NO
+							) 
+						LEFT JOIN CAREER_PROGRS C 
+							ON A.CAREER_NO = C.CAREER_NO
+							AND C.PROGRS_NO IN (
+								SELECT 
+									MAX(PROGRS_NO)
+								FROM CAREER_PROGRS 
+								WHERE PROGRS_STTUS = 'CAPG0002'
+								GROUP BY CAREER_NO
+							) 
+					WHERE B.PROGRS_STTUS IN ('CAPG0006', 'CAPG0007')
+						UNION ALL 
+					SELECT 
+						SPT_SE
+						,'' SE
+						,APPLCNT_NM NM
+						,REQST_NO DOC_NO
+						, 'ARCS0002' SANCTN_KND
+						, CONVERT(VARCHAR(10), RGST_DT, 23) RCEPT_DE
+						,RCEPT_NO
+						,(SELECT DDC_ASTC_CD FROM EPDBS_LINK.SSO.DBO.V_USER WHERE USER_ID = (SELECT TOP 1 SANCTN_ID FROM CRTF_ISSU WHERE REQST_NO = CRTF_REQST.REQST_NO)) CHRG_BRFFC
+						,APPLCNT_IHIDNUM IHIDNUM
+					FROM CRTF_REQST
+						UNION ALL 
+					SELECT
+						SPT_SE
+						,'' SE
+						,ISNULL(ISNULL(ISNULL(A1.nm, A2.상호), A3.기관명), A4.USER_NAME) NM
+						,SN DOC_NO
+						, 'ARCS0005' SANCTN_KND
+						, CONVERT(VARCHAR(10), A.REQST_DT, 23) RCEPT_DE
+						,RCEPT_NO
+						,A.CHRG_BRFFC
+						,'' IHIDNUM
+					FROM HOLD_CRTF A
+						LEFT JOIN USER_INFO A1
+							ON A.RGST_ID = A1.USER_ID
+						LEFT JOIN epdbs_link.epdbs.dbo.업체 A2
+							ON A1.BIZNO = A2.사업자등록번호
+							AND A1.SE = 'USSE0002'
+						LEFT JOIN epdbs_link.epdbs.dbo.수요기관_NEW A3
+							ON A1.BIZNO = A3.사업자등록번호
+							AND A1.SE = 'USSE0004'
+						LEFT JOIN epdbs_link.sso.dbo.V_USER A4
+							ON A.RGST_ID = A4.USER_ID
+						UNION ALL
+					SELECT
+						'',
+						'',
+						I.NM,
+						H.SN,
+						'ARCS0003',
+						CONVERT(VARCHAR(10), H.RGST_DT, 23)  RGST_DT,
+						H.RCEPT_NO, 
+						'',
+						I.IHIDNUM
+					FROM ISSU_AGRE H
+						INNER JOIN USER_MAIN_JSSFC(READUNCOMMITTED) I 
+							ON H.IHIDNUM = I.IHIDNUM
+				) D
+					ON D.DOC_NO = A.DOC_NO
+					AND A.SANCTN_KND = D.SANCTN_KND
+				LEFT JOIN (
+					SELECT 
+						*
+					FROM SANCTN_PROGRS 
+					WHERE SANCTN_PROGRS_NO IN (
+						SELECT
+							MAX(SANCTN_PROGRS_NO)
+						FROM SANCTN_PROGRS 
+						GROUP BY SANCTN_NO, SANCTN_KND
+					)
+				) F
+					ON A.SANCTN_NO = F.SANCTN_NO
+			<include refid="listWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+	
+	<!-- 결재상태조회-->
+	<select id="selectSanctnStatus" parameterType="SanctnVO" resultType="SanctnVO">
+		SELECT 
+			B.SANCTN_STTUS
+		FROM SANCTN_MAIN A
+			LEFT JOIN SANCTN_PROGRS B 
+				ON A.SANCTN_NO = B.SANCTN_NO
+				AND A.SANCTN_KND = B.SANCTN_KND
+				AND B.SANCTN_PROGRS_NO IN (
+					SELECT MAX(SANCTN_PROGRS_NO) 
+					FROM SANCTN_PROGRS 
+					GROUP BY SANCTN_NO
+				)
+		WHERE A.DOC_NO = #{careerNo} 
+		AND A.SANCTN_KND = #{sanctnKnd}
+	</select>
+	
+	<!-- 대리결재자 조회-->
+	<select id="selectSanctnUserList" parameterType="SanctnSearchVO" resultType="SanctnVO">
+		SELECT USER_ID, USER_NAME FROM epdbs_link.sso.dbo.V_USER
+		WHERE 1=1
+		<if test='chrgBrffc != null and chrgBrffc != ""'>
+			AND DDC_ASTC_CD = #{chrgBrffc}
+		</if>
+	</select>
+	
+	<!-- 대리결재자 조회-->
+	<select id="selectLastProgrs" parameterType="SanctnSearchVO" resultType="SanctnVO">
+		SELECT SANCTN_STTUS
+		FROM   SANCTN_MAIN A
+		       LEFT JOIN
+		              (SELECT SANCTN_STTUS,
+		                      SANCTN_NO,
+		                      SANCTN_KND
+		              FROM    SANCTN_PROGRS
+		              WHERE   SANCTN_PROGRS_NO IN
+		                      (SELECT  MAX(SANCTN_PROGRS_NO)
+		                      FROM     SANCTN_PROGRS
+		                      WHERE    SANCTN_STTUS != 'APRV0004'
+		                      GROUP BY SANCTN_NO
+		                      )
+		              )
+		              B
+		       ON     A.SANCTN_NO = B.SANCTN_NO AND A.SANCTN_KND = B.SANCTN_KND
+		WHERE  A.DOC_NO           = #{docNo}
+		AND    A.SANCTN_KND       = #{sanctnKnd}
+	</select>
+	
+	<!-- 결재문서 상신여부 확인 -->
+	<select id="chkSanctnProgrs" parameterType="SanctnVO" resultType="int">
+		SELECT ISNULL(SANCTN_NO, 0) FROM SANCTN_MAIN WHERE SANCTN_KND = #{sanctnKnd} AND DOC_NO = #{docNo}
+	</select>
+	
+	<insert id="insertSanctnProgrsMain" parameterType="SanctnVO">
+		<selectKey keyProperty="sanctnNo" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(SANCTN_NO), 0)+1 FROM SANCTN_MAIN
+		</selectKey>
+		INSERT INTO SANCTN_MAIN (
+			SANCTN_NO, DOC_NO, SANCTN_KND, RGST_ID, RGST_DT, SANCTN_ID
+		) VALUES (
+			#{sanctnNo}, #{docNo}, #{sanctnKnd}, #{rgstId}, GETDATE()
+			,CASE WHEN #{sanctnKnd} IN ('ARCS0001', 'ARCS0005', 'ARCS0002') THEN #{sanctnId} ELSE #{rgstId} END
+		)
+	</insert>
+	
+	<update id="updateSanctnProgrsMain" parameterType="SanctnVO">
+		UPDATE SANCTN_MAIN
+		SET SANCTN_ID = #{sanctnId}
+		WHERE SANCTN_NO = #{sanctnNo}
+	</update>
+	
+	<insert id="insertSanctnProgrs" parameterType="SanctnVO">
+		<selectKey keyProperty="sanctnProgrsNo" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(SANCTN_PROGRS_NO), 0)+1 FROM SANCTN_PROGRS
+		</selectKey>
+		INSERT INTO SANCTN_PROGRS (
+			SANCTN_PROGRS_NO, SANCTN_NO, SANCTN_STTUS, SANCTN_RESN, SANCTN_KND, RGST_ID, RGST_DT
+		) VALUES (
+			#{sanctnProgrsNo}, #{sanctnNo}, #{sanctnSttus}, #{sanctnResn}, #{sanctnKnd}, #{rgstId}, GETDATE()
+		)
+	</insert>
+	
+	<select id="selectSearchAgncyMember" parameterType="Agncy" resultType="Agncy">
+		SELECT
+			USER_ID
+			,USER_NAME
+			,BRFFC_NM
+			,EMAIL
+		FROM epdbs_link.sso.dbo.V_USER
+		WHERE (
+			USER_NAME LIKE CONCAT('%', #{agncyNm} , '%')
+			OR USER_ID LIKE CONCAT('%', #{agncyNm} , '%')
+		)
+	</select>
+	
+	<select id="selectAgncMember" parameterType="Agncy" resultType="Agncy">
+		SELECT
+			A.AGNCY_NO
+			, A.BGNDE
+			, A.ENDDE
+			, A.AGNCY_ID
+			, A.RGST_ID
+			, A.RGST_DT
+			, B.BRFFC_NM
+			, B.USER_NAME
+		FROM SANCTN_AGNCY_ID A
+			LEFT JOIN epdbs_link.sso.dbo.V_USER B
+				ON A.AGNCY_ID = B.USER_ID
+		WHERE A.RGST_ID = #{rgstId}
+		AND DELETE_AT = 'N'
+	</select>
+	
+	<insert id="insertAgncMember" parameterType="Agncy">
+		<selectKey keyProperty="agncyNo" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(AGNCY_NO), 0) + 1 FROM SANCTN_AGNCY_ID
+		</selectKey>
+		INSERT INTO 
+			SANCTN_AGNCY_ID (AGNCY_NO, BGNDE, ENDDE, AGNCY_ID, DELETE_AT, RGST_ID, RGST_DT) 
+		VALUES(
+			#{agncyNo}, #{bgnde}, #{endde}, #{agncyId}, 'N', #{rgstId}, GETDATE()
+		)
+	</insert>
+	
+	<update id="deleteAgncMember" parameterType="Agncy">
+		UPDATE SANCTN_AGNCY_ID SET DELETE_AT = 'Y'
+		WHERE AGNCY_NO = #{agncyNo}
+	</update>
+	
+	<select id="selectSanctnListXls" parameterType="SanctnSearchVO" resultType="java.util.LinkedHashMap">
+		SELECT 
+			CASE WHEN D.SANCTN_KND = 'ARCS0001' THEN (SELECT CD_NM FROM CMMN_CD WHERE CD_ID = D.SE) 
+				 ELSE (SELECT CD_NM FROM CMMN_CD WHERE CD_ID = A.SANCTN_KND) END "구분"
+			,CASE WHEN D.RCEPT_DE IS NOT NULL THEN D.RCEPT_DE ELSE G.RGST_DT END "접수일"
+			,D.RCEPT_NO "접수번호"
+			,CONVERT(VARCHAR(10), C.RGST_DT, 23) "기안일"
+			,(SELECT BRFFC_NM FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = C.RGST_ID) "관할지사"
+			,(SELECT USER_NAME FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = C.RGST_ID) "기안자"
+			,(SELECT USER_NAME FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = A.SANCTN_ID) "결재자"
+			,(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = B.SANCTN_STTUS) "결재상태"
+		FROM SANCTN_MAIN A
+		LEFT JOIN (
+			SELECT 
+				*
+			FROM SANCTN_PROGRS 
+			WHERE 
+				SANCTN_STTUS IN ('APRV0005', 'APRV0006')
+				AND SANCTN_PROGRS_NO IN (
+					SELECT
+						MAX(SANCTN_PROGRS_NO)
+					FROM SANCTN_PROGRS 
+					GROUP BY SANCTN_NO, SANCTN_KND)
+		) B
+		ON A.SANCTN_NO = B.SANCTN_NO
+		LEFT JOIN (
+			SELECT 
+				*
+			FROM SANCTN_PROGRS 
+			WHERE SANCTN_PROGRS_NO IN (
+					SELECT
+						MAX(SANCTN_PROGRS_NO)
+					FROM SANCTN_PROGRS 
+					WHERE SANCTN_STTUS IN ('APRV0002', 'APRV0003')
+					GROUP BY SANCTN_NO, SANCTN_KND)
+		) C
+		ON A.SANCTN_NO = C.SANCTN_NO
+		LEFT JOIN (SELECT 
+				SPT_SE
+				,SE
+				,NM
+				,A.CAREER_NO DOC_NO
+				,'ARCS0001' SANCTN_KND
+				,CONVERT(VARCHAR(10), C.RGST_DT, 23) RCEPT_DE
+				,A.RCEPT_NO
+				,A.CHRG_BRFFC
+				,A.IHIDNUM
+			FROM CAREER_DECLARE A 
+			LEFT JOIN (
+				SELECT
+					* 
+				FROM CAREER_PROGRS 
+				WHERE PROGRS_NO IN (
+					SELECT 
+						MAX(PROGRS_NO)
+					FROM CAREER_PROGRS 
+					WHERE PROGRS_STTUS = 'CAPG0007' 
+					GROUP BY CAREER_NO
+				)
+			) B ON A.CAREER_NO = B.CAREER_NO 
+			LEFT JOIN (SELECT
+					*
+					FROM CAREER_PROGRS 
+					WHERE PROGRS_NO IN (
+							SELECT 
+								MAX(PROGRS_NO)
+							FROM CAREER_PROGRS 
+							WHERE PROGRS_STTUS = 'CAPG0002' GROUP BY CAREER_NO
+					)
+			) C ON A.CAREER_NO = C.CAREER_NO 
+			WHERE  B.PROGRS_STTUS = 'CAPG0007'
+			UNION ALL 
+			SELECT 
+				SPT_SE
+				,'' SE
+				,APPLCNT_NM NM
+				,REQST_NO DOC_NO
+				, 'ARCS0002' SANCTN_KND
+				, CONVERT(VARCHAR(10), RGST_DT, 23) RCEPT_DE
+				,(SELECT TOP 1 ISSU_NO FROM CRTF_ISSU WHERE REQST_NO = CRTF_REQST.REQST_NO) RCEPT_NO
+				,'' CHRG_BRFFC
+				,APPLCNT_IHIDNUM IHIDNUM
+			FROM CRTF_REQST
+		) D ON D.DOC_NO = A.DOC_NO AND A.SANCTN_KND = D.SANCTN_KND
+		LEFT JOIN (
+			SELECT 
+				*
+			FROM SANCTN_PROGRS 
+			WHERE SANCTN_PROGRS_NO IN (
+					SELECT
+						MAX(SANCTN_PROGRS_NO)
+					FROM SANCTN_PROGRS 
+					GROUP BY SANCTN_NO, SANCTN_KND)
+		) F
+		ON A.SANCTN_NO = F.SANCTN_NO
+		LEFT JOIN (
+			 SELECT
+				 H.SN	DOC_NO
+				,CONVERT(VARCHAR(10), H.RGST_DT, 23)  RGST_DT
+				,I.IHIDNUM
+				,I.NM
+				,J.SANCTN_NO
+				,J.SANCTN_KND		SE
+			 FROM ISSU_AGRE H
+			 LEFT JOIN USER_INFO I ON H.IHIDNUM = I.IHIDNUM
+			 INNER JOIN SANCTN_MAIN J
+				ON J.DOC_NO = H.SN
+				AND J.SANCTN_KND = 'ARCS0003'
+					
+		) G 
+		ON A.SANCTN_NO = G.SANCTN_NO
+		<include refid="listWhere" />
+		ORDER BY A.SANCTN_NO
+	</select>
+	
+	<!-- 경력인정신고 조회-->
+	<select id="selectSanctnProgrsListXls" parameterType="SanctnSearchVO" resultType="java.util.LinkedHashMap">
+			SELECT
+				(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = A.SE) "구분",
+				ISNULL(B.RCEPT_DE, '') "접수일",
+         		RCEPT_NO "접수번호",
+				NM "신청자",
+				ISNULL(CONVERT(VARCHAR(10), F.RGST_DT,23), '') "기안일",
+				(SELECT 명칭 FROM epdbs_link.epdbs.dbo.공제회 WHERE 인덱스 = A.CHRG_BRFFC) "관할지사",
+				ISNULL(F.DRAFTER, '') "기안자",
+				ISNULL(F.SANCTNER, '') "결재자",
+				ISNULL(D.PROCESS_STTUS, '결재대기') "결재상태"
+			FROM CAREER_DECLARE A
+         		LEFT JOIN
+                  (SELECT CAREER_NO,
+                          PROGRS_DE RCEPT_DE,
+                          RGST_ID RCEPT_ID
+                  FROM    CAREER_PROGRS
+                  WHERE   PROGRS_STTUS = 'CAPG0002'
+                  AND     PROGRS_NO IN
+                          (SELECT  MAX(PROGRS_NO)
+                          FROM     CAREER_PROGRS
+                          WHERE    PROGRS_STTUS = 'CAPG0002'
+                          GROUP BY CAREER_NO
+                          )
+                  )
+                  B
+         			ON       B.CAREER_NO = A.CAREER_NO
+         		LEFT JOIN
+                  (SELECT CAREER_NO,
+                          PROGRS_DE RCEPT_DE,
+                          RGST_ID RCEPT_ID,
+                          PROGRS_STTUS
+                  FROM    CAREER_PROGRS
+                  WHERE   PROGRS_NO IN
+                          (SELECT  MAX(PROGRS_NO)
+                          FROM     CAREER_PROGRS
+                          GROUP BY CAREER_NO
+                          )
+                  )
+                  C
+         			ON       C.CAREER_NO = A.CAREER_NO
+				LEFT JOIN
+                  (select 
+					A.SANCTN_NO
+					,DOC_NO
+					,SANCTN_STTUS
+					,(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = B.SANCTN_STTUS) PROCESS_STTUS
+					,SANCTN_RESN
+					,B.RGST_DT
+					,B.RGST_ID
+					,A.SANCTN_ID
+				From SANCTN_MAIN A
+				LEFT JOIN SANCTN_PROGRS B ON A.SANCTN_NO = B.SANCTN_NO AND A.SANCTN_KND = B.SANCTN_KND
+			WHERE B.SANCTN_PROGRS_NO IN (SELECT MAX(SANCTN_PROGRS_NO) FROM SANCTN_PROGRS GROUP BY SANCTN_NO)
+				AND A.SANCTN_KND = 'ARCS0001'
+                 )
+                 D
+        			ON       D.DOC_NO = A.CAREER_NO
+			LEFT JOIN
+                 (select 
+				A.SANCTN_NO
+				,DOC_NO
+				,SANCTN_STTUS
+				,(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = B.SANCTN_STTUS) PROCESS_STTUS
+				,SANCTN_RESN
+				,B.RGST_DT
+				,B.RGST_ID
+				,(SELECT USER_NAME FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = B.RGST_ID) DRAFTER
+				,(SELECT USER_NAME FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = A.SANCTN_ID) SANCTNER
+			From SANCTN_MAIN A
+			LEFT JOIN SANCTN_PROGRS B ON A.SANCTN_NO = B.SANCTN_NO AND A.SANCTN_KND = B.SANCTN_KND
+			WHERE B.SANCTN_PROGRS_NO IN (SELECT MAX(SANCTN_PROGRS_NO) FROM SANCTN_PROGRS WHERE SANCTN_STTUS IN ('APRV0002', 'APRV0003') GROUP BY SANCTN_NO)
+				AND A.SANCTN_KND = 'ARCS0001'
+                  )
+                  F
+         			ON       F.DOC_NO = A.CAREER_NO
+			WHERE 1 = 1
+			<include refid="listProgrsWhere" />
+	</select>
+</mapper>

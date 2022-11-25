@@ -1,0 +1,880 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.userInfo.mapper.UserInfoMapper">
+
+	<resultMap type="kr.or.cwma.admin.userInfo.vo.UserMainJssfcVO" id="viewMap" autoMapping="true">
+		<id property="ihidnum" column="IHIDNUM"/>
+		<association property="userInfoVO" javaType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" autoMapping="true" columnPrefix="userInfoVO.">
+			<id property="userId" column="USER_ID" />
+		</association>
+		<collection property="userCareerVO" ofType="kr.or.cwma.admin.userInfo.vo.UserCareerVO" autoMapping="true" columnPrefix="userCareerVO.">
+			<id property="ddcJoinNo" column="DDC_JOIN_NO" />
+			<id property="jssfc" column="JSSFC" />
+		</collection>
+	</resultMap>
+
+	<sql id="jssfcListWhere">
+		<if test='userId != null and userId != ""'>
+			AND A1.USER_ID = #{userId}
+		</if>
+		<if test='nm != null and nm != ""'>
+			AND A.NM LIKE CONCAT('%', #{nm}, '%')
+		</if>
+		<if test='ihidnum1 != null and ihidnum1 != ""'>
+			AND A.IHIDNUM LIKE CONCAT(#{ihidnum1}, '%')
+		</if>
+		<if test='ihidnum2 != null and ihidnum2 != ""'>
+			AND A.IHIDNUM LIKE CONCAT('%', #{ihidnum2})
+		</if>
+		<if test='telno1 != null and telno1 != ""'>
+			AND ISNULL(A1.MOBLPHON_NO, A.TELNO) LIKE CONCAT(#{telno1}, '%')
+		</if>
+		<if test='telno2 != null and telno2 != ""'>
+			AND ISNULL(A1.MOBLPHON_NO, A.TELNO) LIKE CONCAT('%', #{telno2}, '%')
+		</if>
+		<if test='telno3 != null and telno3 != ""'>
+			AND ISNULL(A1.MOBLPHON_NO, A.TELNO) LIKE CONCAT('%', #{telno3})
+		</if>
+		<if test='se != null and se != ""'>
+			AND (
+				A1.SE = #{se}
+				OR A1.SE IS NULL
+			)
+		</if>
+		<if test='sttus != null and sttus != ""'>
+			AND (
+			<if test='sttus == "USST0001"'>
+				A1.STTUS = #{sttus}
+				OR A1.STTUS IS NULL
+			</if>
+			<if test='sttus != "USST0001"'>
+				A1.STTUS = #{sttus}
+			</if>
+			)
+		</if>
+		<if test='grad != null and grad !=""'>
+			AND A.GRAD = #{grad}
+		</if>
+		<if test='jssfcNo != null and jssfcNo !=""'>
+			AND A.JSSFC_NO = #{jssfcNo}
+		</if>
+		<if test='bgnDt != null and bgnDt != ""'>
+			AND A1.RGST_DT >= #{bgnDt}
+		</if>
+		<if test='endDt != null and endDt != ""'>
+			AND A1.RGST_DT &lt;= CONCAT(#{endDt}, ' 23:59:59')
+		</if>
+	</sql>
+	
+	<sql id="userInfoListWhere">
+		<if test='userId != null and userId != ""'>
+			AND A.USER_ID = #{userId}
+		</if>
+		<if test='nm != null and nm != ""'>
+			AND A.NM LIKE CONCAT('%', #{nm}, '%')
+		</if>
+		<if test='corpInfoVO != null and corpInfoVO.corpNm != null and corpInfoVO.corpNm != ""'>
+			AND B.상호 LIKE CONCAT('%', #{corpInfoVO.corpNm}, '%')
+		</if>
+		<if test='dminsttInfoVO != null and dminsttInfoVO.dminsttNm != null and dminsttInfoVO.dminsttNm != ""'>
+			AND C.기관명 LIKE CONCAT('%', #{dminsttInfoVO.dminsttNm}, '%')
+		</if>
+		<if test='corpInfoVO != null and corpInfoVO.corpNo != null and corpInfoVO.corpNo != ""'>
+			AND B.법인번호 LIKE CONCAT('%', #{corpInfoVO.corpNo}, '%')
+		</if>
+		<if test='dminsttInfoVO != null and dminsttInfoVO.corpNo != null and dminsttInfoVO.corpNo != ""'>
+			AND C.법인번호 LIKE CONCAT('%', #{dminsttInfoVO.corpNo}, '%')
+		</if>		
+		<if test='ihidnum1 != null and ihidnum1 != ""'>
+			AND A.IHIDNUM LIKE CONCAT(#{ihidnum1}, '%')
+		</if>
+		<if test='ihidnum2 != null and ihidnum2 != ""'>
+			AND A.IHIDNUM LIKE CONCAT('%', #{ihidnum2})
+		</if>
+		<if test='bizno1 != null and bizno1 != ""'>
+			AND A.BIZNO LIKE CONCAT(#{bizno1}, '%')
+		</if>
+		<if test='bizno2 != null and bizno2 != ""'>
+			AND A.BIZNO LIKE CONCAT('%', #{bizno2}, '%')
+		</if>
+		<if test='bizno3 != null and bizno3 != ""'>
+			AND A.BIZNO LIKE CONCAT('%', #{bizno3})
+		</if>
+		<if test='telno1 != null and telno1 != ""'>
+			AND A.MOBLPHON_NO LIKE CONCAT(#{telno1}, '%')
+		</if>
+		<if test='telno2 != null and telno2 != ""'>
+			AND A.MOBLPHON_NO LIKE CONCAT('%', #{telno2}, '%')
+		</if>
+		<if test='telno3 != null and telno3 != ""'>
+			AND A.MOBLPHON_NO LIKE CONCAT('%', #{telno3})
+		</if>
+		<if test='se != null and se != ""'>
+			AND A.SE = #{se}
+		</if>
+		<if test='sttus != null and sttus != ""'>
+			AND A.STTUS = #{sttus}
+		</if>
+		<if test='bgnDt != null and bgnDt != ""'>
+			AND A.RGST_DT >= #{bgnDt}
+		</if>
+		<if test='endDt != null and endDt != ""'>
+			AND A.RGST_DT &lt;= CONCAT(#{endDt}, ' 23:59:59')
+		</if>
+	</sql>
+
+	<!-- 개인회원 목록갯수조회 -->
+	<select id="selectPersonalUserInfoListCnt" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="int">
+		SELECT COUNT(1)
+		FROM (
+			SELECT 1 AA
+			FROM USER_MAIN_JSSFC (READUNCOMMITTED) A
+				LEFT JOIN USER_INFO A1
+					ON A.IHIDNUM = A1.IHIDNUM
+				LEFT JOIN JSSFC_INFO B
+					ON A.JSSFC_NO = B.JSSFC_NO
+					AND B.ACTVTY_AT = 'Y'
+					AND (B.SE = 'JISE0001' OR B.SE = 'JISE0002')
+				LEFT JOIN CMMN_CD C
+					ON A.GRAD = C.CD_ID
+			WHERE 1 = 1
+			<include refid="jssfcListWhere" />
+				UNION ALL
+			SELECT 1 AA
+			FROM USER_INFO A
+				LEFT JOIN USER_MAIN_JSSFC (READUNCOMMITTED) A1
+					ON A.IHIDNUM = A1.IHIDNUM
+			WHERE A1.IHIDNUM IS NULL
+			<include refid="userInfoListWhere" />
+		) A
+	</select>
+
+	<!-- 개인회원 목록조회 -->
+	<select id="selectPersonalUserInfoList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.UserMainJssfcVO">
+		SELECT *
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY A.NM) AS ROWNUM, A.*
+			FROM( 
+				SELECT 
+					A.*
+				FROM (
+					SELECT
+						ROW_NUMBER() OVER(ORDER BY A.NM) AS RNUM,
+						A.NM, A.GRAD, C.CD_NM GRAD_NM, B.JSSFC_NM, A.WORK_DAYCNT, A.ETC_WORK_DAYCNT,
+						A.IHIDNUM, ISNULL(A1.MOBLPHON_NO, A.TELNO) TELNO, A1.USER_ID [userInfoVO.USER_ID], A1.RGST_DT [userInfoVO.RGST_DT]
+					FROM USER_MAIN_JSSFC (READUNCOMMITTED) A
+						LEFT JOIN USER_INFO A1
+							ON A.IHIDNUM = A1.IHIDNUM
+						LEFT JOIN JSSFC_INFO B
+							ON A.JSSFC_NO = B.JSSFC_NO
+						LEFT JOIN CMMN_CD C
+							ON A.GRAD = C.CD_ID
+					WHERE 1 = 1
+					<include refid="jssfcListWhere" />
+				) A
+				WHERE RNUM BETWEEN #{sNum} AND #{eNum}
+					UNION ALL
+				SELECT 
+					A.*
+				FROM (
+					SELECT
+						ROW_NUMBER() OVER(ORDER BY A.NM) AS RNUM,
+						A.NM, NULL GRAD, NULL GRAD_NM, NULL JSSFC_NM, 0 WORK_DAYCNT, 0 ETC_WORK_DAYCNT, 
+						A.IHIDNUM, A.MOBLPHON_NO, A.USER_ID, A.RGST_DT
+					FROM USER_INFO A
+						LEFT JOIN USER_MAIN_JSSFC (READUNCOMMITTED) A1
+							ON A.IHIDNUM = A1.IHIDNUM
+						LEFT JOIN epdbs_link.epdbs.dbo.업체 B
+							ON A.BIZNO = B.사업자등록번호
+					WHERE A1.IHIDNUM IS NULL
+					<include refid="userInfoListWhere" />
+				) A
+				WHERE RNUM BETWEEN #{sNum} AND #{eNum}
+			) A
+		) A
+		WHERE ROWNUM BETWEEN 1 AND #{numOfPage}
+	</select>
+
+	<!-- 개인회원 엑셀목록조회 -->
+	<select id="selectPersonalUserInfoListXls" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			A.NM "성명",
+			C.CD_NM "등급", 
+			B.JSSFC_NM "직종", 
+			ISNULL(A.WORK_DAYCNT, 0)+ISNULL(A.ETC_WORK_DAYCNT, 0) "환산근로일",
+		<if test='ihidnumIndictAt == "Y"'>
+			A.IHIDNUM "주민등록번호", 
+		</if>
+		<if test='ihidnumIndictAt != "Y"'>
+			SUBSTRING(A.IHIDNUM, 0, 9)+'******' "주민등록번호", 
+		</if>
+			ISNULL(A1.MOBLPHON_NO, A.TELNO) "휴대폰 번호", 
+			A1.USER_ID "회원아이디", 
+			A1.RGST_DT "가입일"
+		FROM USER_MAIN_JSSFC (READUNCOMMITTED) A
+			LEFT JOIN USER_INFO A1
+				ON A.IHIDNUM = A1.IHIDNUM
+			LEFT JOIN JSSFC_INFO B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND B.ACTVTY_AT = 'Y'
+				AND (B.SE = 'JISE0001' OR B.SE = 'JISE0002')
+			LEFT JOIN CMMN_CD C
+				ON A.GRAD = C.CD_ID
+		WHERE 1 = 1
+		<include refid="jssfcListWhere" />
+			UNION ALL
+		SELECT
+			A.NM, 
+			NULL GRAD_NM, 
+			NULL JSSFC_NM, 
+			0 WORK_DAYCNT,
+			A.IHIDNUM, 
+			A.MOBLPHON_NO, 
+			A.USER_ID, 
+			A.RGST_DT
+		FROM USER_INFO A
+			LEFT JOIN USER_MAIN_JSSFC (READUNCOMMITTED) A1
+				ON A.IHIDNUM = A1.IHIDNUM
+			LEFT JOIN epdbs_link.epdbs.dbo.업체 B
+				ON A.BIZNO = B.사업자등록번호
+		WHERE A1.IHIDNUM IS NULL
+		<include refid="userInfoListWhere" />
+	</select>
+
+	<!-- 개인회원 상세조회 -->
+	<select id="selectPersonalUserInfoView" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultMap="viewMap">
+		SELECT
+			ISNULL(A.NM, A1.NM) NM,
+			ISNULL(D.CD_NM, '개인') SE_NM, 
+			A.GRAD,
+			C.CD_NM GRAD_NM,
+			A.JSSFC_NO, 
+			B.JSSFC_NM JSSFC_NM, 
+			B.STDR_DAYCNT,
+			A.WORK_DAYCNT, 
+			A.ETC_WORK_DAYCNT,
+			ISNULL(A.IHIDNUM, A1.IHIDNUM) IHIDNUM, 
+			ISNULL(A1.MOBLPHON_NO, A2.전화번호) TELNO,
+			ISNULL(A1.ADRES, A2.주소) ADRES, 
+			ISNULL(A1.ZIP, A2.우편번호) ZIP,
+			A.JOIN_AT,
+			A.JOIN_DT,
+			F.COMPL_AT [userInfoVO.CLMSER_EDU_COMPL_AT],
+			A1.USER_ID [userInfoVO.USER_ID], 
+			A1.RGST_DT [userInfoVO.RGST_DT],
+			A1.LAST_LOGIN_DT [userInfoVO.LAST_LOGIN_DT],
+			A1.EMAIL [userInfoVO.EMAIL],
+			A1.EMAIL_RECPTN_AGRE_AT [userInfoVO.EMAIL_RECPTN_AGRE_AT],
+			A1.SMS_RECPTN_AGRE_AT [userInfoVO.SMS_RECPTN_AGRE_AT],
+			A1.ADVRTS_INFO_PRCUSE_AGRE_AT [userInfoVO.ADVRTS_INFO_PRCUSE_AGRE_AT] ,
+			A1.STPLAT_SNS_AGRE_AT [userInfoVO.STPLAT_SNS_AGRE_AT] ,
+			A1.STPLAT_ONLINE_CNSLT_AGRE_AT [userInfoVO.STPLAT_ONLINE_CNSLT_AGRE_AT] ,
+			(SELECT MAX(RGST_DT) FROM USER_SNS_AUTHOR WHERE USER_ID = A1.USER_ID ) [userInfoVO.userSnsAuthorVO.rgstDt] ,
+			(	SELECT CASE WHEN ISNULL(COUNT(1),0) > 0 THEN 'Y' ELSE 'N' END 
+				FROM BBS 
+				WHERE SE = 'BSSE0003' 
+				AND (
+						(RGST_ID = A1.USER_ID OR RGST_ID = A1.CI_VALUE)
+					OR 	(MBTLNUM = A1.MOBLPHON_NO OR MBTLNUM = REPLACE(A1.MOBLPHON_NO,'-',''))
+					)
+			) CUSTOMERAT ,
+			E.DDC_JOIN_NO [userCareerVO.DDC_JOIN_NO],
+			E.공사명 [userCareerVO.NM],
+			E.시공자명 [userCareerVO.PRMTR],
+			E.BGN_DT [userCareerVO.BGN_DT],
+			E.END_DT [userCareerVO.END_DT],
+			E.WORK_DAYCNT [userCareerVO.DAYCNT],
+			E.JSSFC [userCareerVO.JSSFC],
+			E.JSSFC_NM [userCareerVO.JSSFC_NM]
+		FROM USER_MAIN_JSSFC (READUNCOMMITTED) A
+			FULL OUTER JOIN USER_INFO A1
+				ON A.IHIDNUM = A1.IHIDNUM
+			LEFT JOIN epdbs_link.epdbs.dbo.edi피공제자 A2
+				ON A.IHIDNUM = A2.주민등록번호
+				AND A2.신피공제자번호 = (
+					SELECT MAX(신피공제자번호)
+					FROM epdbs_link.epdbs.dbo.edi피공제자
+					WHERE 주민등록번호 = #{ihidnum}
+					AND 주소 IS NOT NULL
+					AND 주소 &lt;> ''
+				)
+			LEFT JOIN JSSFC_INFO B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND B.ACTVTY_AT = 'Y'
+				AND (B.SE = 'JISE0001' OR B.SE = 'JISE0002')
+			LEFT JOIN CMMN_CD C
+				ON A.GRAD = C.CD_ID
+			LEFT JOIN CMMN_CD D
+				ON A1.SE = D.CD_ID
+			LEFT JOIN (
+				SELECT A.*, C.공사명, C.시공자명, D1.JSSFC_NM
+				FROM (
+					SELECT IHIDNUM, DDC_JOIN_NO, JSSFC, SUM(WORK_DAYCNT) WORK_DAYCNT, MIN(WORK_YM) BGN_DT, MAX(WORK_YM) END_DT
+					FROM CWMA_CAREER
+					GROUP BY IHIDNUM, DDC_JOIN_NO, JSSFC
+				) A
+					INNER JOIN epdbs_link.epdbs.dbo.공제계약 B
+						ON A.DDC_JOIN_NO = B.공제계약번호
+					INNER JOIN epdbs_link.epdbs.dbo.공제계약 C
+						ON B.공사번호 = C.공사번호
+						AND C.대표사확인 = '1'
+					LEFT JOIN JSSFC_RELATE D
+						ON A.JSSFC = D.CNTC_JSSFC_CD
+					LEFT JOIN JSSFC_INFO D1
+						ON D.JSSFC_NO = D1.JSSFC_NO
+			) E
+				ON A.IHIDNUM = E.IHIDNUM
+			LEFT JOIN USER_CLMSER_EDU_REL F
+				ON A.IHIDNUM = F.IHIDNUM
+		WHERE A.IHIDNUM = #{ihidnum}
+		ORDER BY ISNULL(E.END_DT, '9999-12-31') DESC
+	</select>
+	
+	<!-- 개인회원 고용정보 상용이력 조회 -->
+	<select id="selectPersonalUserCmclList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.UserCareerVO">
+		SELECT *
+		FROM (
+			SELECT
+				A.BPLC_NO DDC_JOIN_NO, B.BPLC_NM NM, C.CORP_NM PRMTR, DATEDIFF(DD, LABOR_ACQDT, LABOR_FRFDT)+1 DAYCNT, 
+				A.JSSFC_NM JSSFC, D.JSSFC_NM, LABOR_ACQDT BGN_DT, LABOR_FRFDT END_DT, D.SE JSSFC_SE
+			FROM CNTC_KCOMWEL_WORK A
+				INNER JOIN JSSFC_RELATE A1
+					ON A.JSSFC_CD = SUBSTRING(A1.CNTC_JSSFC_CD, 2, 10)
+					AND A.JSSFC_ODR = SUBSTRING(A1.CNTC_JSSFC_CD, 1, 1)
+					AND A1.CNTC_SE_CD = 'JRIC0003'
+				INNER JOIN CNTC_KCOMWEL_WORK_CNSTWK B
+					ON A.BPLC_NO = B.BPLC_NO
+				LEFT JOIN CNTC_KCOMWEL_WORK_CORP C
+					ON B.BIZNO = C.BIZNO
+				INNER JOIN JSSFC_INFO D
+					ON A1.JSSFC_NO = D.JSSFC_NO
+					AND (D.SE = 'JISE0001' OR D.SE = 'JISE0002')
+				LEFT JOIN CAREER_CNTC_DATA E
+					ON E.CNTC_SN = A.SN 
+					AND E.CNTC_CD = 'CNTC0007'
+					AND E.DELETE_AT = 'N'
+					AND E.CONFM_AT = 'Y'
+			WHERE A.SE = '상용'
+			AND E.IHIDNUM IS NULL
+			AND A.IHIDNUM = #{ihidnum}
+				UNION ALL
+			SELECT
+				A.BPLC_NO DDC_JOIN_NO, B.BPLC_NM NM, C.CORP_NM PRMTR, DATEDIFF(DD, LABOR_ACQDT, LABOR_FRFDT)+1 DAYCNT, 
+				A.JSSFC_NM JSSFC, E2.JSSFC_NM, LABOR_ACQDT BGN_DT, LABOR_FRFDT END_DT, D.SE JSSFC_SE
+			FROM CNTC_KCOMWEL_WORK A
+				INNER JOIN JSSFC_RELATE A1
+					ON A.JSSFC_CD = SUBSTRING(A1.CNTC_JSSFC_CD, 2, 10)
+					AND A.JSSFC_ODR = SUBSTRING(A1.CNTC_JSSFC_CD, 1, 1)
+					AND A1.CNTC_SE_CD = 'JRIC0003'
+				INNER JOIN CNTC_KCOMWEL_WORK_CNSTWK B
+					ON A.BPLC_NO = B.BPLC_NO
+				LEFT JOIN CNTC_KCOMWEL_WORK_CORP C
+					ON B.BIZNO = C.BIZNO
+				INNER JOIN JSSFC_INFO D
+					ON A1.JSSFC_NO = D.JSSFC_NO
+					AND (D.SE = 'JISE0001' OR D.SE = 'JISE0002')
+				INNER JOIN CAREER_CNTC_DATA E
+					ON E.CNTC_SN = A.SN 
+					AND E.CNTC_CD = 'CNTC0007'
+					AND E.DELETE_AT = 'N'
+					AND E.CONFM_AT = 'Y'
+				INNER JOIN JSSFC_INFO E2
+					ON E.JSSFC_NO = E2.JSSFC_NO
+					AND (E2.SE = 'JISE0001' OR E2.SE = 'JISE0002')
+			WHERE A.SE = '상용'
+			AND E.IHIDNUM = #{ihidnum}
+		) A
+		ORDER BY ISNULL(END_DT, '9999-12-31') DESC
+	</select>
+	
+	<!-- 개인회원 고용정보 일용이력 조회 -->
+	<select id="selectPersonalUserDlyList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.UserCareerVO">
+		SELECT *
+		FROM (
+			SELECT A.BPLC_NO DDC_JOIN_NO, B.BPLC_NM NM, C.CORP_NM PRMTR, A.BGN_DT, A.END_DT, A.LABOR_DAYCNT DAYCNT, A.JSSFC, D.JSSFC_NM, D.SE JSSFC_SE
+			FROM (
+				SELECT 
+					A.IHIDNUM, A.BPLC_NO, A.JSSFC_NM JSSFC, B.JSSFC_NO, MIN(LABOR_YM) BGN_DT, MAX(LABOR_YM) END_DT, SUM(LABOR_DAYCNT) LABOR_DAYCNT
+				FROM CNTC_KCOMWEL_WORK A
+					INNER JOIN JSSFC_RELATE B
+						ON A.JSSFC_CD = SUBSTRING(B.CNTC_JSSFC_CD, 2, 10)
+						AND A.JSSFC_ODR = SUBSTRING(B.CNTC_JSSFC_CD, 1, 1)
+						AND B.CNTC_SE_CD = 'JRIC0003'
+					LEFT JOIN CAREER_CNTC_DATA E
+						ON E.CNTC_SN = A.SN 
+						AND E.CNTC_CD = 'CNTC0007'
+						AND E.DELETE_AT = 'N'
+						AND E.CONFM_AT = 'Y'
+				WHERE A.SE = '일용'
+				AND E.IHIDNUM IS NULL
+				GROUP BY A.IHIDNUM, A.BPLC_NO, A.JSSFC_NM, B.JSSFC_NO, LABOR_YM
+			) A
+				INNER JOIN CNTC_KCOMWEL_WORK_CNSTWK B
+					ON A.BPLC_NO = B.BPLC_NO
+				LEFT JOIN CNTC_KCOMWEL_WORK_CORP C
+					ON B.BIZNO = C.BIZNO
+				INNER JOIN JSSFC_INFO D
+					ON A.JSSFC_NO = D.JSSFC_NO
+					AND (D.SE = 'JISE0001' OR D.SE = 'JISE0002')
+			WHERE A.IHIDNUM = #{ihidnum}
+				UNION ALL
+			SELECT A.BPLC_NO DDC_JOIN_NO, B.BPLC_NM NM, C.CORP_NM PRMTR, A.BGN_DT, A.END_DT, A.LABOR_DAYCNT DAYCNT, A.JSSFC, D.JSSFC_NM, D.SE JSSFC_SE
+			FROM (
+				SELECT 
+					A.IHIDNUM, A.BPLC_NO, A.JSSFC_NM JSSFC, E.JSSFC_NO, MIN(LABOR_YM) BGN_DT, MAX(LABOR_YM) END_DT, SUM(LABOR_DAYCNT) LABOR_DAYCNT
+				FROM CNTC_KCOMWEL_WORK A
+					INNER JOIN JSSFC_RELATE B
+						ON A.JSSFC_CD = SUBSTRING(B.CNTC_JSSFC_CD, 2, 10)
+						AND A.JSSFC_ODR = SUBSTRING(B.CNTC_JSSFC_CD, 1, 1)
+						AND B.CNTC_SE_CD = 'JRIC0003'
+					INNER JOIN JSSFC_INFO D
+						ON B.JSSFC_NO = D.JSSFC_NO
+						AND (D.SE = 'JISE0001' OR D.SE = 'JISE0002')
+					INNER JOIN CAREER_CNTC_DATA E
+						ON E.CNTC_SN = A.SN 
+						AND E.CNTC_CD = 'CNTC0007'
+						AND E.DELETE_AT = 'N'
+						AND E.CONFM_AT = 'Y'
+				WHERE A.SE = '일용'
+				AND E.IHIDNUM = #{ihidnum}
+				GROUP BY A.IHIDNUM, A.BPLC_NO, A.JSSFC_NM, E.JSSFC_NO, LABOR_YM
+			) A
+				INNER JOIN CNTC_KCOMWEL_WORK_CNSTWK B
+					ON A.BPLC_NO = B.BPLC_NO
+				LEFT JOIN CNTC_KCOMWEL_WORK_CORP C
+					ON B.BIZNO = C.BIZNO
+				INNER JOIN JSSFC_INFO D
+					ON A.JSSFC_NO = D.JSSFC_NO
+					AND (D.SE = 'JISE0001' OR D.SE = 'JISE0002')
+		) A
+		ORDER BY END_DT DESC
+	</select>
+	
+	<!-- 개인회원 자격정보이력 조회 -->
+	<select id="selectPersonalUserLicenseList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.UserCareerVO">
+		SELECT
+			LCNS_NO DDC_JOIN_NO, LCNS_NM NM, LCNS_INST PRMTR, D.JSSFC_NM, (
+				CASE LCNS_GRAD
+					WHEN '인정기능사' THEN GRAD_2
+					WHEN '기능사' THEN GRAD_2
+					WHEN '산업기사' THEN GRAD_3
+					WHEN '기능장' THEN GRAD_4
+				END
+			) / D.STDR_DAYCNT DAYCNT
+		FROM CNTC_LICENSE A
+			INNER JOIN JSSFC_RELATE C
+				ON A.JSSFC_CD = C.CNTC_JSSFC_CD
+				AND C.CNTC_SE_CD = 'JRIC0010'
+			INNER JOIN JSSFC_INFO D
+				ON C.JSSFC_NO = D.JSSFC_NO
+				AND (D.SE = 'JISE0001' OR D.SE = 'JISE0002')
+			LEFT JOIN CAREER_CNTC_DATA E
+				ON E.CNTC_SN = A.SN 
+				AND E.CNTC_CD = A.CNTC_SE_CD
+				AND E.DELETE_AT = 'N'
+				AND E.CONFM_AT = 'Y'
+			, (
+				SELECT TOP 1 *
+				FROM CAREER_STDR
+				WHERE SE = 'CSSE0001'
+				AND APPLC_DE &lt;= CONVERT(VARCHAR(10), GETDATE(), 121)
+				ORDER BY SN DESC
+			) F
+		WHERE A.IHIDNUM = #{ihidnum}
+		AND E.IHIDNUM IS NULL
+			UNION ALL
+		SELECT
+			LCNS_NO DDC_JOIN_NO, LCNS_NM NM, LCNS_INST PRMTR, E2.JSSFC_NM, (
+				CASE LCNS_GRAD
+					WHEN '인정기능사' THEN GRAD_2
+					WHEN '기능사' THEN GRAD_2
+					WHEN '산업기사' THEN GRAD_3
+					WHEN '기능장' THEN GRAD_4
+				END
+			) / E2.STDR_DAYCNT DAYCNT
+		FROM CNTC_LICENSE A
+			INNER JOIN CAREER_CNTC_DATA E
+				ON E.CNTC_SN = A.SN 
+				AND E.CNTC_CD = A.CNTC_CODE
+				AND E.DELETE_AT = 'N'
+				AND E.CONFM_AT = 'Y'
+			INNER JOIN JSSFC_INFO E2
+				ON E.JSSFC_NO = E2.JSSFC_NO
+			, (
+				SELECT TOP 1 *
+				FROM CAREER_STDR
+				WHERE SE = 'CSSE0001'
+				AND APPLC_DE &lt;= CONVERT(VARCHAR(10), GETDATE(), 121)
+				ORDER BY SN DESC
+			) F
+		WHERE E.IHIDNUM = #{ihidnum}
+	</select>
+	
+	<!-- 개인회원 교육/훈련이력 조회 -->
+	<select id="selectPersonalUserEduList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.UserCareerVO">
+		SELECT 
+			CRSE_NM NM, A.BGNDE BGN_DT, ENDDE END_DT, INSTT_NM PRMTR, D.JSSFC_NM, GRAD_2 * (A.TRAING_TIME/8.0) DAYCNT
+		FROM CNTC_EDU A
+			INNER JOIN JSSFC_RELATE C
+				ON (
+					A.NCS_CD = C.CNTC_JSSFC_CD
+					AND C.CNTC_SE_CD = 'JRIC0004'
+				) OR (
+					A.NCS_CD = ''
+					AND A.KECO_CD = C.CNTC_JSSFC_CD
+					AND C.CNTC_SE_CD = 'JRIC0012'
+				) OR (
+					A.NCS_CD = ''
+					AND A.KECO_CD = ''
+					AND A.JSSFC_CD = C.CNTC_JSSFC_CD
+					AND C.CNTC_SE_CD = 'JRIC0013'
+				) OR (
+					A.NCS_CD = ''
+					AND A.KECO_CD = ''
+					AND A.JSSFC_CD = ''
+					AND A.NATION_PD_JSSFC_CD = C.CNTC_JSSFC_CD
+					AND C.CNTC_SE_CD = 'JRIC0014'
+				)
+			INNER JOIN JSSFC_INFO D
+				ON C.JSSFC_NO = D.JSSFC_NO
+				AND (D.SE = 'JISE0001' OR D.SE = 'JISE0002')
+			, (
+				SELECT TOP 1 *
+				FROM CAREER_STDR
+				WHERE SE = 'CSSE0003'
+				AND APPLC_DE &lt;= CONVERT(VARCHAR(10), GETDATE(), 121)
+				ORDER BY SN DESC
+			) B
+		WHERE A.IHIDNUM = #{ihidnum}
+			UNION ALL
+		SELECT 
+			CRSE_NM NM, A.BGNDE BGN_DT, ENDDE END_DT, INSTT_NM PRMTR, E2.JSSFC_NM, GRAD_2 * (A.TRAING_TIME/8.0) DAYCNT
+		FROM CNTC_KEIS_EDU A
+			INNER JOIN CNTC_KEIS_EDU_SN A1
+				ON A.IHIDNUM = A1.IHIDNUM
+				AND A.CRSE_CD = A1.CRSE_CD
+				AND A.BGNDE = A1.BGNDE
+			INNER JOIN CAREER_CNTC_DATA E
+				ON E.CNTC_SN = A1.SN 
+				AND E.CNTC_CD = 'CNTC0006'
+				AND E.DELETE_AT = 'N'
+				AND E.CONFM_AT = 'Y'
+			INNER JOIN JSSFC_INFO E2
+				ON E.JSSFC_NO = E2.JSSFC_NO
+				AND (E2.SE = 'JISE0001' OR E2.SE = 'JISE0002')
+			, (
+				SELECT TOP 1 *
+				FROM CAREER_STDR
+				WHERE SE = 'CSSE0003'
+				AND APPLC_DE &lt;= CONVERT(VARCHAR(10), GETDATE(), 121)
+				ORDER BY SN DESC
+			) B
+		WHERE A.COMPL_AT = 'Y'
+		AND E.IHIDNUM = #{ihidnum}
+			UNION ALL
+		SELECT
+			CRSE_NM NM, A.BGNDE BGN_DT, ENDDE END_DT, TRAING_ENGN_NM PRMTR, A2.JSSFC_NM, GRAD_2 * (A.TRAING_TIME/6.0) DAYCNT
+		FROM CNTC_CID_EDU A
+			INNER JOIN JSSFC_RELATE A1
+				ON CNTC_SE_CD = 'JRIC0015'
+				AND A.CRSE_NM = A1.CNTC_JSSFC_CD
+			INNER JOIN JSSFC_INFO A2
+				ON A1.JSSFC_NO = A2.JSSFC_NO
+				AND (A2.SE = 'JISE0001' OR A2.SE = 'JISE0002')
+			, (
+				SELECT TOP 1 *
+				FROM CAREER_STDR
+				WHERE SE = 'CSSE0003'
+				AND APPLC_DE &lt;= CONVERT(VARCHAR(10), GETDATE(), 121)
+				ORDER BY SN DESC
+			) B
+		WHERE A.COMPL_AT = 'Y'
+		AND A.IHIDNUM = #{ihidnum}
+	</select>
+	
+	<!-- 개인회원 포상이력 조회 -->
+	<select id="selectPersonalUserRewardList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.UserCareerVO">
+		SELECT 
+			CNFRNC_NM NM, ITEM JSSFC, GRAD RANK, RWARD_DE BGN_DT, INSTT_NM PRMTR, D.JSSFC_NM, (
+				CASE GRAD
+					WHEN '1' THEN GRAD_1
+					WHEN '2' THEN GRAD_2
+					WHEN '3' THEN GRAD_3
+					ELSE GRAD_4
+				END
+			) * D.STDR_DAYCNT DAYCNT
+		FROM CNTC_REWARD A
+			INNER JOIN JSSFC_RELATE B
+				ON A.ITEM = B.CNTC_JSSFC_CD
+				AND B.CNTC_SE_CD = A.CNTC_SE_CD
+			INNER JOIN JSSFC_INFO D
+				ON B.JSSFC_NO = D.JSSFC_NO
+				AND (D.SE = 'JISE0001' OR D.SE = 'JISE0002')
+			, (
+				SELECT TOP 1 *
+				FROM CAREER_STDR
+				WHERE SE = 'CSSE0006'
+				AND APPLC_DE &lt;= CONVERT(VARCHAR(10), GETDATE(), 121)
+				ORDER BY SN DESC
+			) C
+		WHERE A.IHIDNUM = #{ihidnum}
+			UNION ALL
+		SELECT 
+			CNFRNC_NM NM, ITEM JSSFC, GRAD RANK, RWARD_DE BGN_DT, INSTT_NM PRMTR, E2.JSSFC_NM, (
+				CASE GRAD
+					WHEN '1' THEN GRAD_1
+					WHEN '2' THEN GRAD_2
+					WHEN '3' THEN GRAD_3
+					ELSE GRAD_4
+				END
+			) * E2.STDR_DAYCNT DAYCNT
+		FROM CNTC_REWARD A
+			INNER JOIN CAREER_CNTC_DATA E
+				ON E.CNTC_SN = A.SN 
+				AND E.CNTC_CD = A.CNTC_CODE
+				AND E.DELETE_AT = 'N'
+				AND E.CONFM_AT = 'Y'
+			INNER JOIN JSSFC_INFO E2
+				ON E.JSSFC_NO = E2.JSSFC_NO
+				AND (E2.SE = 'JISE0001' OR E2.SE = 'JISE0002')
+			, (
+				SELECT TOP 1 *
+				FROM CAREER_STDR
+				WHERE SE = 'CSSE0006'
+				AND APPLC_DE &lt;= CONVERT(VARCHAR(10), GETDATE(), 121)
+				ORDER BY SN DESC
+			) C
+		WHERE E.IHIDNUM = #{ihidnum}
+	</select>
+	
+	<!-- 목록갯수조회 -->
+	<select id="selectUserInfoListCnt" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="int">
+		SELECT COUNT(1)
+		FROM USER_INFO A
+			LEFT JOIN epdbs_link.epdbs.dbo.업체 B
+				ON A.BIZNO = B.사업자등록번호
+			LEFT JOIN epdbs_link.epdbs.dbo.수요기관_NEW C
+				ON A.BIZNO = C.사업자등록번호
+		WHERE 1 = 1
+		<include refid="userInfoListWhere" />
+	</select>
+
+	<!-- 목록조회 -->
+	<select id="selectUserInfoList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.UserInfoVO">
+		SELECT *
+		FROM (
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY A.RGST_DT DESC) AS ROWNUM,
+				A.*
+			FROM (
+				SELECT
+					ROW_NUMBER() OVER(PARTITION BY ISNULL(B.사업자등록번호, C.사업자등록번호) ORDER BY ISNULL(B.상호, C.기관명)) AS RNUM,
+					A.NM, 
+					A.BIZNO, 
+					A.MOBLPHON_NO, 
+					A.USER_ID, 
+					A.RGST_DT,
+					B.상호 [corpInfoVO.CORP_NM],
+					B.대표자 [corpInfoVO.CEO_NM], 
+					B.법인번호 [corpInfoVO.CORP_NO],
+					C.기관명 [dminsttInfoVO.DMINSTT_NM],
+					C.대표자명 [dminsttInfoVO.CEO_NM], 
+					C.법인번호 [dminsttInfoVO.CORP_NO]
+				FROM USER_INFO A
+					LEFT JOIN epdbs_link.epdbs.dbo.업체 B
+						ON A.BIZNO = B.사업자등록번호
+					LEFT JOIN epdbs_link.epdbs.dbo.수요기관_NEW C
+						ON A.BIZNO = C.사업자등록번호
+				WHERE 1 = 1
+				<include refid="userInfoListWhere" />
+			) A
+			WHERE RNUM = 1
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+
+	<!-- 엑셀목록조회 -->
+	<select id="selectUserInfoListXls" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			B.상호 "상호명",
+			A.USER_ID "아이디",
+		<if test='se == "USSE0002"'>
+			B.대표자 "대표자명", 
+		</if>
+		<if test='se == "USSE0003"'> 
+			A.NM "성명",
+		</if> 
+			A.BIZNO "사업자등록번호",
+		<if test='se == "USSE0002"'> 
+			B.법인번호 "법인등록번호",
+		</if>
+		<if test='se == "USSE0003"'> 
+			A.MOBLPHON_NO "휴대폰번호",
+		</if>
+			A.RGST_DT "가입일"
+		FROM USER_INFO A
+			LEFT JOIN epdbs_link.epdbs.dbo.업체 B
+				ON A.BIZNO = B.사업자등록번호
+		WHERE 1 = 1
+		<include refid="userInfoListWhere" />
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectUserInfoView" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.UserInfoVO">
+		SELECT TOP 1
+			A.USER_ID,
+			A.NM,
+			A.SE,
+			B.CD_NM SE_NM,
+			A.MOBLPHON_NO,
+			A.EMAIL,
+			A.BIZNO,
+			A.DN_VALUE,
+			A.CI_VALUE,
+			A.PASSWORD,
+			A.IHIDNUM,
+			A.EMAIL_RECPTN_AGRE_AT,
+			A.SMS_RECPTN_AGRE_AT,
+			A.ADVRTS_INFO_PRCUSE_AGRE_AT,
+			A.STPLAT_ONLINE_CNSLT_AGRE_AT,
+		<if test='se == "USSE0001"'>
+			A.ADRES, 
+			A.ZIP, 
+			C.COMPL_AT CLMSER_EDU_COMPL_AT,
+			A.STPLAT_SNS_AGRE_AT,
+		</if>
+			A.USER_ID, 
+			A.RGST_DT,
+			A.LAST_LOGIN_DT
+		FROM USER_INFO A
+			LEFT JOIN CMMN_CD B
+				ON A.SE = B.CD_ID
+			LEFT JOIN USER_CLMSER_EDU_REL C
+				ON A.IHIDNUM = C.IHIDNUM
+		WHERE A.USER_ID = #{userId}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertUserInfo" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO">
+		INSERT INTO USER_INFO(
+			USER_ID, PASSWORD, SE, NM, IHIDNUM, BIZNO, EMAIL, MOBLPHON_NO, ADRES, ZIP, 
+			CI_VALUE, DN_VALUE, EMAIL_RECPTN_AGRE_AT, SMS_RECPTN_AGRE_AT, PASSWORD_CHG_DT, STTUS, RGST_DT, ADVRTS_INFO_PRCUSE_AGRE_AT, STPLAT_SNS_AGRE_AT, STPLAT_ONLINE_CNSLT_AGRE_AT
+		)VALUES(
+			#{userId}, #{password}, #{se}, #{nm}, #{ihidnum}, #{bizno}, #{email}, #{moblphonNo}, #{adres}, #{zip}, 
+			#{ciValue}, #{dnValue}, #{emailRecptnAgreAt}, #{smsRecptnAgreAt}, GETDATE(), 'USST0001', GETDATE() , #{advrtsInfoPrcuseAgreAt}, #{stplatSnsAgreAt}, #{stplatOnlineCnsltAgreAt}
+		)
+	</insert>
+	
+	<!-- 수정 -->
+	<update id="updateUserInfo" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO">
+		UPDATE USER_INFO
+		SET CHG_DT = GETDATE()
+		<if test='moblphonNo != null and moblphonNo != ""'>
+			,MOBLPHON_NO = #{moblphonNo}
+		</if>
+		<if test='adres != null and adres != ""'>
+			,ADRES = #{adres}
+		</if>
+		<if test='zip != null and zip != ""'>
+			,ZIP = #{zip}
+		</if>
+		<if test='emailRecptnAgreAt != null and emailRecptnAgreAt != ""'>
+			,EMAIL_RECPTN_AGRE_AT = #{emailRecptnAgreAt}
+		</if>
+		<if test='smsRecptnAgreAt != null and smsRecptnAgreAt != ""'>
+			,SMS_RECPTN_AGRE_AT = #{smsRecptnAgreAt}
+		</if>
+		<if test='email != null and email != ""'>
+			,EMAIL = #{email}
+		</if>
+		<if test='dnValue != null and dnValue != ""'>
+			,DN_VALUE = #{dnValue}
+		</if>
+		<if test='advrtsInfoPrcuseAgreAt != null and advrtsInfoPrcuseAgreAt != ""'>
+			,ADVRTS_INFO_PRCUSE_AGRE_AT = #{advrtsInfoPrcuseAgreAt}
+		</if>
+		<if test='stplatSnsAgreAt != null and stplatSnsAgreAt != ""'>
+			,STPLAT_SNS_AGRE_AT = #{stplatSnsAgreAt}
+		</if>
+		<if test='stplatOnlineCnsltAgreAt != null and stplatOnlineCnsltAgreAt != ""'>
+			,STPLAT_ONLINE_CNSLT_AGRE_AT = #{stplatOnlineCnsltAgreAt}
+		</if>
+			,CHG_ID = #{chgId}
+		WHERE USER_ID = #{userId}
+	</update>
+
+	<!-- 삭제 -->
+	<delete id="deleteUserInfo" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO">
+		DELETE FROM USER_CNTRCT_RELATE
+		WHERE USER_ID = #{userId};
+	
+		DELETE FROM USER_INFO
+		WHERE USER_ID = #{userId};
+	</delete>
+	
+	<!-- 상담내역 대상코드조회 -->
+	<select id="selectUserCnsltHistTrgtList" resultType="kr.or.cwma.admin.cmmnCd.vo.CmmnCdVO">
+		SELECT IDX CD_ID, 대상 CD_NM
+		FROM epdbs_link.epdbs.dbo.민원상담_대상
+	</select>
+	
+	<!-- 상담내역 대상코드조회 -->
+	<select id="selectUserCnsltHistSeList" resultType="kr.or.cwma.admin.cmmnCd.vo.CmmnCdVO">
+		SELECT IDX CD_ID, 구분 CD_NM
+		FROM epdbs_link.epdbs.dbo.민원상담_구분
+	</select>
+	
+	<!-- 상담내역 신피공제자번호조회 -->
+	<select id="selectUserCnsltDdcerSnList" parameterType="kr.or.cwma.admin.userInfo.vo.UserCnsltHistVO" resultType="kr.or.cwma.admin.cmmnCd.vo.CmmnCdVO">
+		SELECT 신피공제자번호 CD_ID
+		FROM epdbs_link.epdbs.dbo.edi피공제자
+		WHERE 주민등록번호 = #{ihidnum}
+		ORDER BY 신피공제자번호 DESC
+	</select>
+	
+	<!-- 상담내역 목록조회 -->
+	<select id="selectUserCnsltHistList" parameterType="kr.or.cwma.admin.userInfo.vo.UserCnsltHistVO" resultType="kr.or.cwma.admin.userInfo.vo.UserCnsltHistVO">
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY A.IDX DESC) AS ROWNUM,
+			A.IDX SN, 
+			C.구분 SE, 
+			A.비고 CN, 
+			A.상담자 RGST_NM, 
+			A.입력일자 RGST_DT, 
+			D.명칭 RGST_DEPT
+		FROM 민원상담 A
+			INNER JOIN epdbs_link.epdbs.dbo.edi피공제자 B
+				ON A.신피공제자번호 = B.신피공제자번호
+			INNER JOIN epdbs_link.epdbs.dbo.민원상담_구분 C
+				ON A.구분 = C.IDX-1
+			INNER JOIN epdbs_link.epdbs.dbo.공제회 D
+				ON D.인덱스 = A.입력대행기관
+		WHERE B.주민등록번호 = #{ihidnum}
+	</select>
+
+	<!-- 상담내역 등록 -->
+	<insert id="insertUserCnsltHist" parameterType="kr.or.cwma.admin.userInfo.vo.UserCnsltHistVO">
+		INSERT INTO 민원상담 (
+			신피공제자번호, 구분, 대상, 비고, 내용_제도설명, 내용_기타, 내용_기능인등급, 상담자, 입력대행기관, 최종수정자, 입력일자, 일자, 최종수정일자,
+			내용_퇴직청구안내,내용_퇴직처리상황,내용_대부청구안내,내용_대부처리상황,내용_대부상환안내,내용_대부상계안내,내용_대부종료안내,
+			내용_사실확인서,내용_근로내역,내용_근로일수누락,내용_정보사항정정,내용_수첩반납분실,내용_금융지원,내용_본지부안내,내용_ARS안내,
+			내용_근무이력서발급,내용_적립내역서발급,내용_근무현황조사표,내용_피공제자고지우편반송,내용_우편수신거부,내용_문자수신거부,내용_우편거부해제,
+			내용_문자거부해제,내용_부정수급예방,내용_부정수급의심조사,내용_부정수급자처리, 내용_지킴이통장안내,내용_외국인통역서비스,내용_취업노무상담,
+			내용_외국인전문상담,내용_건강심리상담,내용_상담예약,내용_각종복지서비스상담,내용_취업및훈련지원상담,내용_사대보험관련상담,내용_법률및노무상담,
+			내용_정보사항수정,내용_근로일수미적립상담,내용_퇴직공제적립내역등상담,내용_청구불가252일미만,내용_재청구불가252일미만,내용_각종고지수신거부,
+			내용_외국인통역서비스안내,내용_외국인통역서비스이용,내용_콜백,내용_해피콜,내용_해피콜퇴직공제금,내용_적립내역ARS안내,내용_홈페이지안내,
+			내용_모바일앱안내,내용_해피콜대부금,내용_해피콜상담,내용_VOC
+		) VALUES (
+			#{ddcerSn}, #{se}-1, #{trgt}-1, #{cn}, #{descriptionAt}, #{etcAt}, #{skillAt}, 
+			(SELECT USER_NAME FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = #{rgstId}), 
+			(SELECT DDC_ASTC_CD FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = #{rgstId}), 
+			(SELECT USER_NAME FROM epdbs_link.sso.dbo.V_USER WHERE USER_ID = #{rgstId}), GETDATE(), GETDATE(), GETDATE(),
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+		)
+	</insert>
+
+</mapper>

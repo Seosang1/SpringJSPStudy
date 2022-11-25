@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.batchLog.mapper.BatchLogMapper">
+	<sql id="listWhere">
+		<if test='batchResult != null and batchResult != ""'>
+			AND BATCH_RESULT = #{batchResult}
+		</if>
+		<if test='batchCd != null and batchCd != ""'>
+			AND A.BATCH_CD = #{batchCd}
+		</if>
+		<if test='bgnDt != null and bgnDt != ""'>
+			AND A.EXECUT_DE >= #{bgnDt}
+		</if>
+		<if test='endDt != null and endDt != ""'>
+			AND A.EXECUT_DE &lt;= #{endDt}
+		</if>
+	</sql>
+
+	<!-- 목록갯수조회 -->
+	<select id="selectBatchLogListCnt" parameterType="kr.or.cwma.admin.batchLog.vo.BatchLogVO" resultType="int">
+		SELECT COUNT(1)
+		FROM BATCH_LOG A
+		WHERE 1 = 1
+		<include refid="listWhere" />
+	</select>
+
+	<!-- 목록조회 -->
+	<select id="selectBatchLogList" parameterType="kr.or.cwma.admin.batchLog.vo.BatchLogVO" resultType="kr.or.cwma.admin.batchLog.vo.BatchLogVO">
+		SELECT *  
+		FROM( 
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY SN, A.BATCH_CD DESC) AS ROWNUM, 
+				SN,
+				A.BATCH_CD,
+				A1.BATCH_NM,
+				B.CD_NM BATCH_RESULT,
+				A.EXECUT_DE,
+				CNT
+			FROM BATCH_LOG A
+				INNER JOIN BATCH_MANAGE A1
+					ON A.BATCH_CD = A1.BATCH_CD
+				LEFT JOIN CMMN_CD B
+					ON BATCH_RESULT = B.CD_ID
+			WHERE 1 = 1
+			<include refid="listWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+	
+	<!-- 엑셀목록조회 -->
+	<select id="selectBatchLogListXls" parameterType="kr.or.cwma.admin.batchLog.vo.BatchLogVO" resultType="java.util.LinkedHashMap">
+		SELECT 
+			A.BATCH_CD "연계코드",
+			A1.BATCH_NM "연계명",
+			B.CD_NM "수집상태",
+			CNT "건수",
+			A.EXECUT_DE "실행일"
+		FROM BATCH_LOG A
+			INNER JOIN BATCH_MANAGE A1
+				ON A.BATCH_CD = A1.BATCH_CD
+			LEFT JOIN CMMN_CD B
+				ON BATCH_RESULT = B.CD_ID
+		WHERE 1 = 1
+		<include refid="listWhere" />
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectBatchLogView" parameterType="kr.or.cwma.admin.batchLog.vo.BatchLogVO" resultType="kr.or.cwma.admin.batchLog.vo.BatchLogVO">
+		SELECT 
+			SN,
+			A.BATCH_CD,
+			A1.BATCH_NM,
+			B.CD_NM BATCH_RESULT,
+			A.MSSAGE,
+			A.EXECUT_DE,
+			CNT
+		FROM BATCH_LOG A
+			INNER JOIN BATCH_MANAGE A1
+				ON A.BATCH_CD = A1.BATCH_CD
+			LEFT JOIN CMMN_CD B
+				ON BATCH_RESULT = B.CD_ID
+		WHERE SN = #{sn}
+	</select>
+	
+	<!-- 배치 코드 목록조회 -->
+	<select id="selectBatchCdList" resultType="kr.or.cwma.admin.batchLog.vo.BatchLogVO">
+		SELECT 
+			BATCH_CD,
+			BATCH_NM
+		FROM BATCH_MANAGE
+	</select>
+
+</mapper>

@@ -1,0 +1,1317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.stats.mapper.StatsMapper">
+
+	<!-- 회원통계 -->
+	<select id="selectUserStatsList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="java.util.HashMap">
+		SELECT
+			A.CD_NM seNm, C.CNT visitCnt , B.*
+		FROM (
+			SELECT CD_NM, CD_ID
+			FROM CMMN_CD
+			WHERE PARNTS_CD_ID = 'USSE0000'
+				UNION ALL
+			SELECT '합계', 'TOTAL'
+		) A
+			LEFT JOIN (
+				SELECT 
+					ISNULL(SE, 'TOTAL') SE,
+					COUNT(1) totalCnt, 
+					COUNT(CASE WHEN GENDER % 2 = 0 THEN 1 END) womanCnt, 
+					COUNT(CASE WHEN GENDER % 2 &lt;> 0 THEN 1 END) guyCnt,
+					COUNT(CASE WHEN AGE >= 70 THEN 1 END) range70,
+					COUNT(CASE WHEN AGE >= 60 AND AGE &lt; 70 THEN 1 END) range60,
+					COUNT(CASE WHEN AGE >= 50 AND AGE &lt; 60 THEN 1 END) range50,
+					COUNT(CASE WHEN AGE >= 40 AND AGE &lt; 50 THEN 1 END) range40,
+					COUNT(CASE WHEN AGE >= 30 AND AGE &lt; 40 THEN 1 END) range30,
+					COUNT(CASE WHEN AGE >= 20 AND AGE &lt; 30 THEN 1 END) range20,
+					COUNT(CASE WHEN AGE &lt; 20 THEN 1 END) range10
+				FROM (
+					SELECT 
+						SE, GENDER,
+						CONVERT(INT, CONVERT(VARCHAR(4), GETDATE(), 23)) - CONVERT(INT, (
+							CASE
+								WHEN GENDER = 1 OR GENDER = 2 OR GENDER = 5 OR GENDER = 6 THEN '19'
+								WHEN GENDER = 3 OR GENDER = 4 OR GENDER = 7 OR GENDER = 8 THEN '20'
+								ELSE '18'
+							END
+						) + YY) + 1 AGE
+					FROM (
+						SELECT 
+							SE, IHIDNUM, CONVERT(INT, SUBSTRING(IHIDNUM, 8, 1)) GENDER,
+							SUBSTRING(IHIDNUM, 1, 2) YY
+						FROM USER_INFO
+						WHERE 1 = 1
+					<if test='bgnDt != null and bgnDt != ""'>
+						AND RGST_DT >= #{bgnDt}
+					</if>
+					<if test='endDt != null and endDt != ""'>
+						AND RGST_DT &lt;= CONCAT(#{endDt}, ' 23:59:59')
+					</if>
+					) A
+				) A
+				GROUP BY ROLLUP(SE)
+			) B
+				ON A.CD_ID = B.SE
+			LEFT JOIN (
+				SELECT
+					ISNULL(SE, 'TOTAL') SE,
+					SUM(CNT) CNT
+				FROM USER_LOGIN_STATS
+				WHERE 1 = 1
+			<if test='bgnDt != null and bgnDt != ""'>
+				AND LOGIN_DE >= #{bgnDt}
+			</if>
+			<if test='endDt != null and endDt != ""'>
+				AND LOGIN_DE &lt;= #{endDt}
+			</if>
+				GROUP BY ROLLUP(SE)
+			) C
+				ON C.SE = B.SE
+	</select>
+
+	<!-- 지역별회원통계 -->	
+	<select id="selectUserAreaStatsList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="java.util.HashMap">
+		SELECT
+			A.CD_NM seNm, B.*
+		FROM (
+			SELECT CD_NM, CD_ID
+			FROM CMMN_CD
+			WHERE PARNTS_CD_ID = 'USSE0000'
+				UNION ALL
+			SELECT '합계', 'TOTAL'
+		) A
+			LEFT JOIN (
+				SELECT 
+					ISNULL(SE, 'TOTAL') SE,
+					COUNT(CASE WHEN AREA = '서울' THEN 1 END) 서울,
+					COUNT(CASE WHEN AREA = '인천' THEN 1 END) 인천,
+					COUNT(CASE WHEN AREA = '부산' THEN 1 END) 부산,
+					COUNT(CASE WHEN AREA = '경기' THEN 1 END) 경기,
+					COUNT(CASE WHEN AREA = '강원' THEN 1 END) 강원,
+					COUNT(CASE WHEN AREA = '대전' THEN 1 END) 대전,
+					COUNT(CASE WHEN AREA = '세종' THEN 1 END) 세종,
+					COUNT(CASE WHEN AREA = '광주' THEN 1 END) 광주,
+					COUNT(CASE WHEN AREA = '대구' THEN 1 END) 대구,
+					COUNT(CASE WHEN AREA = '울산' THEN 1 END) 울산,
+					COUNT(CASE WHEN AREA = '제주' THEN 1 END) 제주,
+					COUNT(CASE WHEN AREA = '충북' THEN 1 END) 충북,
+					COUNT(CASE WHEN AREA = '충남' THEN 1 END) 충남,
+					COUNT(CASE WHEN AREA = '전남' THEN 1 END) 전남,
+					COUNT(CASE WHEN AREA = '전북' THEN 1 END) 전북,
+					COUNT(CASE WHEN AREA = '경남' THEN 1 END) 경남,
+					COUNT(CASE WHEN AREA = '경북' THEN 1 END) 경북,
+					COUNT(CASE WHEN AREA = '기타' THEN 1 END) 기타
+				FROM (
+					SELECT 
+						CASE 
+							WHEN ADRES LIKE '서울%' THEN '서울'
+							WHEN ADRES LIKE '인천%' THEN '인천'
+							WHEN ADRES LIKE '부산%' THEN '부산'
+							WHEN ADRES LIKE '경기%' THEN '경기'
+							WHEN ADRES LIKE '강원%' THEN '강원'
+							WHEN ADRES LIKE '대전%' THEN '대전'
+							WHEN ADRES LIKE '세종%' THEN '세종'
+							WHEN ADRES LIKE '광주%' THEN '광주'
+							WHEN ADRES LIKE '대구%' THEN '대구'
+							WHEN ADRES LIKE '울산%' THEN '울산'
+							WHEN ADRES LIKE '제주%' THEN '제주'
+							WHEN ADRES LIKE '충청북도%' OR ADRES LIKE '충북%' THEN '충북'
+							WHEN ADRES LIKE '충청남도%' OR ADRES LIKE '충남%' THEN '충남'
+							WHEN ADRES LIKE '전라남도%' OR ADRES LIKE '전남%' THEN '전남'
+							WHEN ADRES LIKE '전라북도%' OR ADRES LIKE '전북%' THEN '전북'
+							WHEN ADRES LIKE '경상남도%' OR ADRES LIKE '경남%' THEN '경남'
+							WHEN ADRES LIKE '경상북도%' OR ADRES LIKE '경북%' THEN '경북'
+							ELSE '기타'
+						END AREA, 
+						SE
+					FROM USER_INFO A
+					WHERE 1 = 1
+					<if test='bgnDt != null and bgnDt != ""'>
+						AND RGST_DT >= #{bgnDt}
+					</if>
+					<if test='endDt != null and endDt != ""'>
+						AND RGST_DT &lt;= CONCAT(#{endDt}, ' 23:59:59')
+					</if>
+				) A
+				GROUP BY ROLLUP(SE)
+			) B
+				ON A.CD_ID = B.SE
+	</select>
+	
+	<!-- 회원통계엑셀 -->
+	<select id="selectUserStatsListXls" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			A.CD_NM "구분", 
+			ISNULL(B.totalCnt, 0) "가입",
+			ISNULL(C.CNT, 0) "방문자",
+			ISNULL(B.guyCnt, 0) "남자",
+			ISNULL(B.womanCnt, 0) "여자",
+			ISNULL(B.range10, 0) "10대",
+			ISNULL(B.range20, 0) "20대",
+			ISNULL(B.range30, 0) "30대",
+			ISNULL(B.range40, 0) "40대",
+			ISNULL(B.range50, 0) "50대", 
+			ISNULL(B.range60, 0) "60대",
+			ISNULL(B.range70, 0) "70대 이상"
+		FROM (
+			SELECT CD_NM, CD_ID
+			FROM CMMN_CD
+			WHERE PARNTS_CD_ID = 'USSE0000'
+				UNION ALL
+			SELECT '합계', 'TOTAL'
+		) A
+			LEFT JOIN (
+				SELECT 
+					ISNULL(SE, 'TOTAL') SE,
+					COUNT(1) totalCnt, 
+					COUNT(CASE WHEN GENDER % 2 = 0 THEN 1 END) womanCnt, 
+					COUNT(CASE WHEN GENDER % 2 &lt;> 0 THEN 1 END) guyCnt,
+					COUNT(CASE WHEN AGE >= 70 THEN 1 END) range70,
+					COUNT(CASE WHEN AGE >= 60 AND AGE &lt; 70 THEN 1 END) range60,
+					COUNT(CASE WHEN AGE >= 50 AND AGE &lt; 60 THEN 1 END) range50,
+					COUNT(CASE WHEN AGE >= 40 AND AGE &lt; 50 THEN 1 END) range40,
+					COUNT(CASE WHEN AGE >= 30 AND AGE &lt; 40 THEN 1 END) range30,
+					COUNT(CASE WHEN AGE >= 20 AND AGE &lt; 30 THEN 1 END) range20,
+					COUNT(CASE WHEN AGE &lt; 20 THEN 1 END) range10
+				FROM (
+					SELECT 
+						SE, GENDER,
+						CONVERT(INT, CONVERT(VARCHAR(4), GETDATE(), 23)) - CONVERT(INT, (
+							CASE
+								WHEN GENDER = 1 OR GENDER = 2 OR GENDER = 5 OR GENDER = 6 THEN '19'
+								WHEN GENDER = 3 OR GENDER = 4 OR GENDER = 7 OR GENDER = 8 THEN '20'
+								ELSE '18'
+							END
+						) + YY) + 1 AGE
+					FROM (
+						SELECT 
+							SE, IHIDNUM, CONVERT(INT, SUBSTRING(IHIDNUM, 8, 1)) GENDER,
+							SUBSTRING(IHIDNUM, 1, 2) YY
+						FROM USER_INFO
+						WHERE 1 = 1
+					<if test='bgnDt != null and bgnDt != ""'>
+						AND RGST_DT >= #{bgnDt}
+					</if>
+					<if test='endDt != null and endDt != ""'>
+						AND RGST_DT &lt;= CONCAT(#{endDt}, ' 23:59:59')
+					</if>
+					) A
+				) A
+				GROUP BY ROLLUP(SE)
+			) B
+				ON A.CD_ID = B.SE
+			LEFT JOIN (
+				SELECT
+					ISNULL(SE, 'TOTAL') SE,
+					SUM(CNT) CNT
+				FROM USER_LOGIN_STATS
+				WHERE 1 = 1
+			<if test='bgnDt != null and bgnDt != ""'>
+				AND LOGIN_DE >= #{bgnDt}
+			</if>
+			<if test='endDt != null and endDt != ""'>
+				AND LOGIN_DE &lt;= #{endDt}
+			</if>
+				GROUP BY ROLLUP(SE)
+			) C
+				ON C.SE = B.SE
+	</select>
+	
+	<!-- 지역별회원통계엑셀 -->
+	<select id="selectUserAreaStatsListXls" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			A.CD_NM "구분", 서울, 인천, 부산, 경기, 강원, 대전, 세종, 광주, 대구, 울산, 제주, 충북, 충남, 전남, 전북, 경남, 경북, 기타 
+		FROM (
+			SELECT CD_NM, CD_ID
+			FROM CMMN_CD
+			WHERE PARNTS_CD_ID = 'USSE0000'
+				UNION ALL
+			SELECT '합계', 'TOTAL'
+		) A
+			LEFT JOIN (
+				SELECT 
+					ISNULL(SE, 'TOTAL') SE,
+					COUNT(CASE WHEN AREA = '서울' THEN 1 END) 서울,
+					COUNT(CASE WHEN AREA = '인천' THEN 1 END) 인천,
+					COUNT(CASE WHEN AREA = '부산' THEN 1 END) 부산,
+					COUNT(CASE WHEN AREA = '경기' THEN 1 END) 경기,
+					COUNT(CASE WHEN AREA = '강원' THEN 1 END) 강원,
+					COUNT(CASE WHEN AREA = '대전' THEN 1 END) 대전,
+					COUNT(CASE WHEN AREA = '세종' THEN 1 END) 세종,
+					COUNT(CASE WHEN AREA = '광주' THEN 1 END) 광주,
+					COUNT(CASE WHEN AREA = '대구' THEN 1 END) 대구,
+					COUNT(CASE WHEN AREA = '울산' THEN 1 END) 울산,
+					COUNT(CASE WHEN AREA = '제주' THEN 1 END) 제주,
+					COUNT(CASE WHEN AREA = '충북' THEN 1 END) 충북,
+					COUNT(CASE WHEN AREA = '충남' THEN 1 END) 충남,
+					COUNT(CASE WHEN AREA = '전남' THEN 1 END) 전남,
+					COUNT(CASE WHEN AREA = '전북' THEN 1 END) 전북,
+					COUNT(CASE WHEN AREA = '경남' THEN 1 END) 경남,
+					COUNT(CASE WHEN AREA = '경북' THEN 1 END) 경북,
+					COUNT(CASE WHEN AREA = '기타' THEN 1 END) 기타
+				FROM (
+					SELECT 
+						CASE 
+							WHEN ADRES LIKE '서울%' THEN '서울'
+							WHEN ADRES LIKE '인천%' THEN '인천'
+							WHEN ADRES LIKE '부산%' THEN '부산'
+							WHEN ADRES LIKE '경기%' THEN '경기'
+							WHEN ADRES LIKE '강원%' THEN '강원'
+							WHEN ADRES LIKE '대전%' THEN '대전'
+							WHEN ADRES LIKE '세종%' THEN '세종'
+							WHEN ADRES LIKE '광주%' THEN '광주'
+							WHEN ADRES LIKE '대구%' THEN '대구'
+							WHEN ADRES LIKE '울산%' THEN '울산'
+							WHEN ADRES LIKE '제주%' THEN '제주'
+							WHEN ADRES LIKE '충청북도%' OR ADRES LIKE '충북%' THEN '충북'
+							WHEN ADRES LIKE '충청남도%' OR ADRES LIKE '충남%' THEN '충남'
+							WHEN ADRES LIKE '전라남도%' OR ADRES LIKE '전남%' THEN '전남'
+							WHEN ADRES LIKE '전라북도%' OR ADRES LIKE '전북%' THEN '전북'
+							WHEN ADRES LIKE '경상남도%' OR ADRES LIKE '경남%' THEN '경남'
+							WHEN ADRES LIKE '경상북도%' OR ADRES LIKE '경북%' THEN '경북'
+							ELSE '기타'
+						END AREA, 
+						SE
+					FROM USER_INFO A
+					WHERE 1 = 1
+					<if test='bgnDt != null and bgnDt != ""'>
+						AND RGST_DT >= #{bgnDt}
+					</if>
+					<if test='endDt != null and endDt != ""'>
+						AND RGST_DT &lt;= CONCAT(#{endDt}, ' 23:59:59')
+					</if>
+				) A
+				GROUP BY ROLLUP(SE)
+			) B
+				ON A.CD_ID = B.SE
+	</select>
+	
+	<!-- 등급별(직종) 증명서 발급통계 -->
+	<select id="selectCrtfIssuStatsList" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="kr.or.cwma.admin.stats.vo.GradStatsVO">
+		SELECT
+			A.JSSFC_NM SE_NM, B.*
+		FROM (
+			SELECT JSSFC_NO, JSSFC_NM
+			FROM JSSFC_INFO
+			WHERE ACTVTY_AT = 'Y'
+				UNION ALL
+			SELECT 0, '계'
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					COUNT(1) TOTAL_CNT,
+					COUNT(CASE WHEN B.GRAD = 'GRAD0001' THEN 1 END) GRAD1_CNT,
+					COUNT(CASE WHEN B.GRAD = 'GRAD0002' THEN 1 END) GRAD2_CNT,
+					COUNT(CASE WHEN B.GRAD = 'GRAD0003' THEN 1 END) GRAD3_CNT,
+					COUNT(CASE WHEN B.GRAD = 'GRAD0004' THEN 1 END) GRAD4_CNT
+				FROM CRTF_REQST A
+					INNER JOIN CRTF_ISSU B
+						ON A.REQST_NO = B.REQST_NO
+					LEFT JOIN SANCTN_MAIN SM
+		 				ON A.REQST_NO = SM.DOC_NO
+		 				AND SM.SANCTN_KND = 'ARCS0002'
+		 			LEFT JOIN SANCTN_PROGRS SP
+		 				ON SM.SANCTN_NO = SP.SANCTN_NO
+		 				AND SP.SANCTN_PROGRS_NO IN (
+		 					SELECT MAX(SANCTN_PROGRS_NO)
+		 					FROM SANCTN_PROGRS
+		 					GROUP BY SANCTN_NO
+		 				)
+				WHERE B.ISSU_NO IN (SELECT MAX(ISSU_NO) FROM CRTF_ISSU WHERE SANCTN_ID IS NOT NULL GROUP BY REQST_NO)
+				AND A.DELETE_AT = 'N'
+				AND B.ISSU_DE IS NOT NULL
+				AND SP.SANCTN_STTUS = 'APRV0005'
+			<if test='statsDe != null and statsDe != ""'>
+				AND ISSU_DE &lt; DATEADD(MONTH, 1, CONVERT(DATE, CONCAT(#{statsDe}, '-01')))
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+		ORDER BY A.JSSFC_NO
+	</select>
+
+	<!-- 등급별(직종) 증명서발급통계 Excel -->	
+	<select id="selectCrtfIssuStatsListXls" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			A.JSSFC_NM "직종",
+			ISNULL(TOTAL_CNT, 0) "계",
+			ISNULL(GRAD1_CNT, 0) "초급",
+			ISNULL(GRAD2_CNT, 0) "중급",
+			ISNULL(GRAD3_CNT, 0) "고급",
+			ISNULL(GRAD4_CNT, 0) "특급"
+		FROM (
+			SELECT JSSFC_NO, JSSFC_NM
+			FROM JSSFC_INFO
+			WHERE ACTVTY_AT = 'Y'
+				UNION ALL
+			SELECT 0, '계'
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					COUNT(1) TOTAL_CNT,
+					COUNT(CASE WHEN B.GRAD = 'GRAD0001' THEN 1 END) GRAD1_CNT,
+					COUNT(CASE WHEN B.GRAD = 'GRAD0002' THEN 1 END) GRAD2_CNT,
+					COUNT(CASE WHEN B.GRAD = 'GRAD0003' THEN 1 END) GRAD3_CNT,
+					COUNT(CASE WHEN B.GRAD = 'GRAD0004' THEN 1 END) GRAD4_CNT
+				FROM CRTF_REQST A
+					INNER JOIN CRTF_ISSU B
+						ON A.REQST_NO = B.REQST_NO
+					LEFT JOIN SANCTN_MAIN SM
+		 				ON A.REQST_NO = SM.DOC_NO
+		 				AND SM.SANCTN_KND = 'ARCS0002'
+		 			LEFT JOIN SANCTN_PROGRS SP
+		 				ON SM.SANCTN_NO = SP.SANCTN_NO
+		 				AND SP.SANCTN_PROGRS_NO IN (
+		 					SELECT MAX(SANCTN_PROGRS_NO)
+		 					FROM SANCTN_PROGRS
+		 					GROUP BY SANCTN_NO
+		 				)
+				WHERE B.ISSU_NO IN (SELECT MAX(ISSU_NO) FROM CRTF_ISSU WHERE SANCTN_ID IS NOT NULL GROUP BY REQST_NO)
+				AND A.DELETE_AT = 'N'
+				AND B.ISSU_DE IS NOT NULL
+				AND SP.SANCTN_STTUS = 'APRV0005'
+			<if test='statsDe != null and statsDe != ""'>
+				AND ISSU_DE &lt; DATEADD(MONTH, 1, CONVERT(DATE, CONCAT(#{statsDe}, '-01')))
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+		ORDER BY A.JSSFC_NO
+	</select>
+	
+	<!-- 등급별(신청방법) 증명서 발급통계 -->
+	<select id="selectCrtfIssuSptStatsList" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="kr.or.cwma.admin.stats.vo.GradStatsVO">
+		SELECT
+			A.SPT_SE SE_NM, B.*
+		FROM (
+			SELECT 1 ODR, '방문' SPT_SE
+				UNION ALL
+			SELECT 2 ODR, '인터넷'
+				UNION ALL
+			SELECT 0 ODR, '계'
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(SPT_SE, '계') SPT_SE,
+					COUNT(1) TOTAL_CNT,
+					COUNT(CASE WHEN GRAD = 'GRAD0001' THEN 1 END) GRAD1_CNT,
+					COUNT(CASE WHEN GRAD = 'GRAD0002' THEN 1 END) GRAD2_CNT,
+					COUNT(CASE WHEN GRAD = 'GRAD0003' THEN 1 END) GRAD3_CNT,
+					COUNT(CASE WHEN GRAD = 'GRAD0004' THEN 1 END) GRAD4_CNT
+				FROM (
+					SELECT
+						CASE
+							WHEN SPT_SE = 'SPTS0002' THEN '방문'
+							WHEN SPT_SE IN ('SPTS0001', 'SPTS0003') THEN '인터넷'
+						END SPT_SE,
+						B.GRAD
+					FROM CRTF_REQST A
+						INNER JOIN CRTF_ISSU B
+							ON A.REQST_NO = B.REQST_NO
+						LEFT JOIN SANCTN_MAIN SM
+			 				ON A.REQST_NO = SM.DOC_NO
+			 				AND SM.SANCTN_KND = 'ARCS0002'
+			 			LEFT JOIN SANCTN_PROGRS SP
+			 				ON SM.SANCTN_NO = SP.SANCTN_NO
+			 				AND SP.SANCTN_PROGRS_NO IN (
+			 					SELECT MAX(SANCTN_PROGRS_NO)
+			 					FROM SANCTN_PROGRS
+			 					GROUP BY SANCTN_NO
+			 				)
+					WHERE B.ISSU_NO IN (SELECT MAX(ISSU_NO) FROM CRTF_ISSU WHERE SANCTN_ID IS NOT NULL GROUP BY REQST_NO)
+					AND A.DELETE_AT = 'N'
+					AND B.ISSU_DE IS NOT NULL
+					AND SP.SANCTN_STTUS = 'APRV0005'
+				<if test='statsDe != null and statsDe != ""'>
+					AND ISSU_DE &lt; DATEADD(MONTH, 1, CONVERT(DATE, CONCAT(#{statsDe}, '-01')))
+				</if>
+				) A
+				GROUP BY ROLLUP(SPT_SE)
+			) B
+				ON A.SPT_SE = B.SPT_SE
+		ORDER BY A.ODR
+	</select>
+
+	<!-- 등급별(신청방법) 증명서발급통계 Excel -->
+	<select id="selectCrtfIssuSptStatsListXls" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			A.SPT_SE "신청방법",
+			ISNULL(TOTAL_CNT, 0) "계",
+			ISNULL(GRAD1_CNT, 0) "초급",
+			ISNULL(GRAD2_CNT, 0) "중급",
+			ISNULL(GRAD3_CNT, 0) "고급",
+			ISNULL(GRAD4_CNT, 0) "특급"
+		FROM (
+			SELECT 1 ODR, '방문' SPT_SE
+				UNION ALL
+			SELECT 2 ODR, '인터넷'
+				UNION ALL
+			SELECT 0 ODR, '계'
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(SPT_SE, '계') SPT_SE,
+					COUNT(1) TOTAL_CNT,
+					COUNT(CASE WHEN GRAD = 'GRAD0001' THEN 1 END) GRAD1_CNT,
+					COUNT(CASE WHEN GRAD = 'GRAD0002' THEN 1 END) GRAD2_CNT,
+					COUNT(CASE WHEN GRAD = 'GRAD0003' THEN 1 END) GRAD3_CNT,
+					COUNT(CASE WHEN GRAD = 'GRAD0004' THEN 1 END) GRAD4_CNT
+				FROM (
+					SELECT
+						CASE
+							WHEN SPT_SE = 'SPTS0002' THEN '방문'
+							WHEN SPT_SE IN ('SPTS0001', 'SPTS0003') THEN '인터넷'
+						END SPT_SE,
+						B.GRAD
+					FROM CRTF_REQST A
+						INNER JOIN CRTF_ISSU B
+							ON A.REQST_NO = B.REQST_NO
+						LEFT JOIN SANCTN_MAIN SM
+			 				ON A.REQST_NO = SM.DOC_NO
+			 				AND SM.SANCTN_KND = 'ARCS0002'
+			 			LEFT JOIN SANCTN_PROGRS SP
+			 				ON SM.SANCTN_NO = SP.SANCTN_NO
+			 				AND SP.SANCTN_PROGRS_NO IN (
+			 					SELECT MAX(SANCTN_PROGRS_NO)
+			 					FROM SANCTN_PROGRS
+			 					GROUP BY SANCTN_NO
+			 				)
+					WHERE B.ISSU_NO IN (SELECT MAX(ISSU_NO) FROM CRTF_ISSU WHERE SANCTN_ID IS NOT NULL GROUP BY REQST_NO)
+					AND A.DELETE_AT = 'N'
+					AND B.ISSU_DE IS NOT NULL
+					AND SP.SANCTN_STTUS = 'APRV0005'
+				<if test='statsDe != null and statsDe != ""'>
+					AND ISSU_DE &lt; DATEADD(MONTH, 1, CONVERT(DATE, CONCAT(#{statsDe}, '-01')))
+				</if>
+				) A
+				GROUP BY ROLLUP(SPT_SE)
+			) B
+				ON A.SPT_SE = B.SPT_SE
+		ORDER BY A.ODR
+	</select>
+	
+	<!-- 연령별(신청방법) 증명서 발급통계 -->
+	<select id="selectCrtfIssuAgeStatsList" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="kr.or.cwma.admin.stats.vo.GradStatsVO">
+		SELECT
+			A.SPT_SE SE_NM, B.*
+		FROM (
+			SELECT 1 ODR, '방문' SPT_SE
+				UNION ALL
+			SELECT 2 ODR, '인터넷'
+				UNION ALL
+			SELECT 0 ODR, '계'
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(SPT_SE, '계') SPT_SE,
+					COUNT(1) TOTAL_CNT,
+					COUNT(CASE WHEN AGE >= 70 THEN 1 END) AGE70_CNT,
+					COUNT(CASE WHEN AGE >= 60 AND AGE &lt; 70 THEN 1 END) AGE60_CNT,
+					COUNT(CASE WHEN AGE >= 50 AND AGE &lt; 60 THEN 1 END) AGE50_CNT,
+					COUNT(CASE WHEN AGE >= 40 AND AGE &lt; 50 THEN 1 END) AGE40_CNT,
+					COUNT(CASE WHEN AGE >= 30 AND AGE &lt; 40 THEN 1 END) AGE30_CNT,
+					COUNT(CASE WHEN AGE &lt; 30 THEN 1 END) AGE20_CNT
+				FROM (
+					SELECT
+						CASE
+							WHEN SPT_SE = 'SPTS0002' THEN '방문'
+							WHEN SPT_SE IN ('SPTS0001', 'SPTS0003') THEN '인터넷'
+						END SPT_SE,
+						CONVERT(INT, CONVERT(VARCHAR(4), GETDATE(), 23)) - CONVERT(INT, CASE 
+							WHEN SUBSTRING(ISSU_TRGTER_IHIDNUM, 8, 1) IN ('1', '2', '5', '6') THEN '19'
+							WHEN SUBSTRING(ISSU_TRGTER_IHIDNUM, 8, 1) IN ('3', '4', '7', '8') THEN '20'
+							ELSE '18'
+						END + LEFT(ISSU_TRGTER_IHIDNUM, 2))+1 AGE
+					FROM CRTF_REQST A
+						INNER JOIN CRTF_ISSU B
+							ON A.REQST_NO = B.REQST_NO
+						LEFT JOIN SANCTN_MAIN SM
+			 				ON A.REQST_NO = SM.DOC_NO
+			 				AND SM.SANCTN_KND = 'ARCS0002'
+			 			LEFT JOIN SANCTN_PROGRS SP
+			 				ON SM.SANCTN_NO = SP.SANCTN_NO
+			 				AND SP.SANCTN_PROGRS_NO IN (
+			 					SELECT MAX(SANCTN_PROGRS_NO)
+			 					FROM SANCTN_PROGRS
+			 					GROUP BY SANCTN_NO
+			 				)
+					WHERE B.ISSU_NO IN (SELECT MAX(ISSU_NO) FROM CRTF_ISSU WHERE SANCTN_ID IS NOT NULL GROUP BY REQST_NO)
+					AND A.DELETE_AT = 'N'
+					AND B.ISSU_DE IS NOT NULL
+					AND SP.SANCTN_STTUS = 'APRV0005'
+				<if test='statsDe != null and statsDe != ""'>
+					AND ISSU_DE &lt; DATEADD(MONTH, 1, CONVERT(DATE, CONCAT(#{statsDe}, '-01')))
+				</if>
+				) A
+				GROUP BY ROLLUP(SPT_SE)
+			) B
+				ON A.SPT_SE = B.SPT_SE
+		ORDER BY A.ODR
+	</select>
+
+	<!-- 연령별(신청방법) 증명서발급통계 Excel -->
+	<select id="selectCrtfIssuAgeStatsListXls" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			A.SPT_SE "신청방법",
+			ISNULL(TOTAL_CNT, 0) "계",
+			ISNULL(AGE20_CNT, 0) "20대 이하",
+			ISNULL(AGE30_CNT, 0) "30대",
+			ISNULL(AGE40_CNT, 0) "40대",
+			ISNULL(AGE50_CNT, 0) "50대",
+			ISNULL(AGE60_CNT, 0) "60대",
+			ISNULL(AGE70_CNT, 0) "70대 이상"
+		FROM (
+			SELECT 1 ODR, '방문' SPT_SE
+				UNION ALL
+			SELECT 2 ODR, '인터넷'
+				UNION ALL
+			SELECT 0 ODR, '계'
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(SPT_SE, '계') SPT_SE,
+					COUNT(1) TOTAL_CNT,
+					COUNT(CASE WHEN AGE >= 70 THEN 1 END) AGE70_CNT,
+					COUNT(CASE WHEN AGE >= 60 AND AGE &lt; 70 THEN 1 END) AGE60_CNT,
+					COUNT(CASE WHEN AGE >= 50 AND AGE &lt; 60 THEN 1 END) AGE50_CNT,
+					COUNT(CASE WHEN AGE >= 40 AND AGE &lt; 50 THEN 1 END) AGE40_CNT,
+					COUNT(CASE WHEN AGE >= 30 AND AGE &lt; 40 THEN 1 END) AGE30_CNT,
+					COUNT(CASE WHEN AGE &lt; 30 THEN 1 END) AGE20_CNT
+				FROM (
+					SELECT
+						CASE
+							WHEN SPT_SE = 'SPTS0002' THEN '방문'
+							WHEN SPT_SE IN ('SPTS0001', 'SPTS0003') THEN '인터넷'
+						END SPT_SE,
+						CONVERT(INT, CONVERT(VARCHAR(4), GETDATE(), 23)) - CONVERT(INT, CASE 
+							WHEN SUBSTRING(ISSU_TRGTER_IHIDNUM, 8, 1) IN ('1', '2', '5', '6') THEN '19'
+							WHEN SUBSTRING(ISSU_TRGTER_IHIDNUM, 8, 1) IN ('3', '4', '7', '8') THEN '20'
+							ELSE '18'
+						END + LEFT(ISSU_TRGTER_IHIDNUM, 2))+1 AGE
+					FROM CRTF_REQST A
+						INNER JOIN CRTF_ISSU B
+							ON A.REQST_NO = B.REQST_NO
+						LEFT JOIN SANCTN_MAIN SM
+			 				ON A.REQST_NO = SM.DOC_NO
+			 				AND SM.SANCTN_KND = 'ARCS0002'
+			 			LEFT JOIN SANCTN_PROGRS SP
+			 				ON SM.SANCTN_NO = SP.SANCTN_NO
+			 				AND SP.SANCTN_PROGRS_NO IN (
+			 					SELECT MAX(SANCTN_PROGRS_NO)
+			 					FROM SANCTN_PROGRS
+			 					GROUP BY SANCTN_NO
+			 				)
+					WHERE B.ISSU_NO IN (SELECT MAX(ISSU_NO) FROM CRTF_ISSU WHERE SANCTN_ID IS NOT NULL GROUP BY REQST_NO)
+					AND A.DELETE_AT = 'N'
+					AND B.ISSU_DE IS NOT NULL
+					AND SP.SANCTN_STTUS = 'APRV0005'
+				<if test='statsDe != null and statsDe != ""'>
+					AND ISSU_DE &lt; DATEADD(MONTH, 1, CONVERT(DATE, CONCAT(#{statsDe}, '-01')))
+				</if>
+				) A
+				GROUP BY ROLLUP(SPT_SE)
+			) B
+				ON A.SPT_SE = B.SPT_SE
+		ORDER BY A.ODR
+	</select>
+	
+	<!-- 연령별(성별) 등급통계 -->
+	<select id="selectGradAgeGenderStatsList" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="kr.or.cwma.admin.stats.vo.GradStatsVO">
+		SELECT
+			A.JSSFC_NM SE_NM, SEXDSTN_NM SEXDSTN, B.*
+		FROM (
+			SELECT *
+			FROM (
+				SELECT JSSFC_NO, JSSFC_NM
+				FROM JSSFC_INFO
+				WHERE ACTVTY_AT = 'Y'
+					UNION ALL
+				SELECT 0, '계'
+			) A
+				LEFT JOIN (
+					SELECT '남' SEXDSTN, '남성' SEXDSTN_NM
+						UNION ALL
+					SELECT '녀' SEXDSTN, '여성' SEXDSTN_NM
+						UNION ALL
+					SELECT '계', '계'
+				) B
+					ON A.JSSFC_NM = SEXDSTN
+					OR A.JSSFC_NO > 0
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					ISNULL(SEXDSTN, '계') SEXDSTN,
+					SUM(CNT) TOTAL_CNT,
+					SUM(CASE WHEN AGRDE >= '70' THEN CNT END) AGE70_CNT,
+					SUM(CASE WHEN AGRDE = '60' THEN CNT END) AGE60_CNT,
+					SUM(CASE WHEN AGRDE = '50' THEN CNT END) AGE50_CNT,
+					SUM(CASE WHEN AGRDE = '40' THEN CNT END) AGE40_CNT,
+					SUM(CASE WHEN AGRDE = '30' THEN CNT END) AGE30_CNT,
+					SUM(CASE WHEN AGRDE &lt;= '20' THEN CNT END) AGE20_CNT
+				FROM GRAD_STATS A
+				WHERE 1 = 1
+			<if test='statsDe != null and statsDe != ""'>
+				AND STATS_DE = #{statsDe}
+			</if>
+			<if test='statsDe == null or statsDe == ""'>
+				AND STATS_DE = (SELECT TOP 1 STATS_DE FROM GRAD_STATS ORDER BY STATS_DE DESC)
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO, SEXDSTN)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND A.SEXDSTN = B.SEXDSTN
+		ORDER BY A.JSSFC_NO, SEXDSTN_NM
+	</select>
+	
+	<!-- 연령별(성별) 등급통계 엑셀목록 -->
+	<select id="selectGradAgeGenderStatsListXls" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			JSSFC_NM "직종",
+			SEXDSTN_NM "성별",
+			ISNULL(TOTAL_CNT, 0) "계",
+			ISNULL(AGE20_CNT, 0) "20대 이하",
+			ISNULL(AGE30_CNT, 0) "30대",
+			ISNULL(AGE40_CNT, 0) "40대",
+			ISNULL(AGE50_CNT, 0) "50대",
+			ISNULL(AGE60_CNT, 0) "60대",
+			ISNULL(AGE70_CNT, 0) "70대 이상"
+		FROM (
+			SELECT *
+			FROM (
+				SELECT JSSFC_NO, JSSFC_NM
+				FROM JSSFC_INFO
+				WHERE ACTVTY_AT = 'Y'
+					UNION ALL
+				SELECT 0, '계'
+			) A
+				LEFT JOIN (
+					SELECT '남' SEXDSTN, '남성' SEXDSTN_NM
+						UNION ALL
+					SELECT '녀' SEXDSTN, '여성' SEXDSTN_NM
+						UNION ALL
+					SELECT '계', '계'
+				) B
+					ON A.JSSFC_NM = SEXDSTN
+					OR A.JSSFC_NO > 0
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					ISNULL(SEXDSTN, '계') SEXDSTN,
+					SUM(CNT) TOTAL_CNT,
+					SUM(CASE WHEN AGRDE >= '70' THEN CNT END) AGE70_CNT,
+					SUM(CASE WHEN AGRDE = '60' THEN CNT END) AGE60_CNT,
+					SUM(CASE WHEN AGRDE = '50' THEN CNT END) AGE50_CNT,
+					SUM(CASE WHEN AGRDE = '40' THEN CNT END) AGE40_CNT,
+					SUM(CASE WHEN AGRDE = '30' THEN CNT END) AGE30_CNT,
+					SUM(CASE WHEN AGRDE &lt;= '20' THEN CNT END) AGE20_CNT
+				FROM GRAD_STATS A
+				WHERE 1 = 1
+			<if test='statsDe != null and statsDe != ""'>
+				AND STATS_DE = #{statsDe}
+			</if>
+			<if test='statsDe == null or statsDe == ""'>
+				AND STATS_DE = (SELECT TOP 1 STATS_DE FROM GRAD_STATS ORDER BY STATS_DE DESC)
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO, SEXDSTN)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND A.SEXDSTN = B.SEXDSTN
+		ORDER BY A.JSSFC_NO, SEXDSTN_NM
+	</select>
+	
+	<!-- 연령별(등급) 등급통계 -->
+	<select id="selectGradAgeGradStatsList" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="kr.or.cwma.admin.stats.vo.GradStatsVO">
+		SELECT
+			A.JSSFC_NM SE_NM, CD_NM GRAD, B.*
+		FROM (
+			SELECT *
+			FROM (
+				SELECT JSSFC_NO, JSSFC_NM
+				FROM JSSFC_INFO
+				WHERE ACTVTY_AT = 'Y'
+					UNION ALL
+				SELECT 0, '계'
+			) A
+				LEFT JOIN (
+					SELECT CD_ID, CD_NM
+					FROM CMMN_CD
+					WHERE PARNTS_CD_ID = 'GRAD0000'
+						UNION ALL
+					SELECT '계', '계'
+				) B
+					ON A.JSSFC_NM = CD_ID
+					OR A.JSSFC_NO > 0
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					ISNULL(GRAD, '계') GRAD_CD,
+					SUM(CNT) TOTAL_CNT,
+					SUM(CASE WHEN AGRDE >= '70' THEN CNT END) AGE70_CNT,
+					SUM(CASE WHEN AGRDE = '60' THEN CNT END) AGE60_CNT,
+					SUM(CASE WHEN AGRDE = '50' THEN CNT END) AGE50_CNT,
+					SUM(CASE WHEN AGRDE = '40' THEN CNT END) AGE40_CNT,
+					SUM(CASE WHEN AGRDE = '30' THEN CNT END) AGE30_CNT,
+					SUM(CASE WHEN AGRDE &lt;= '20' THEN CNT END) AGE20_CNT
+				FROM GRAD_STATS A
+				WHERE 1 = 1
+			<if test='statsDe != null and statsDe != ""'>
+				AND STATS_DE = #{statsDe}
+			</if>
+			<if test='statsDe == null or statsDe == ""'>
+				AND STATS_DE = (SELECT TOP 1 STATS_DE FROM GRAD_STATS ORDER BY STATS_DE DESC)
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO, GRAD)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND A.CD_ID = B.GRAD_CD
+		ORDER BY A.JSSFC_NO, A.CD_NM
+	</select>
+	
+	<!-- 연령별(등급) 등급통계 엑셀목록-->
+	<select id="selectGradAgeGradStatsListXls" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			JSSFC_NM "직종",
+			CD_NM "등급",
+			ISNULL(TOTAL_CNT, 0) "계",
+			ISNULL(AGE20_CNT, 0) "20대 이하",
+			ISNULL(AGE30_CNT, 0) "30대",
+			ISNULL(AGE40_CNT, 0) "40대",
+			ISNULL(AGE50_CNT, 0) "50대",
+			ISNULL(AGE60_CNT, 0) "60대",
+			ISNULL(AGE70_CNT, 0) "70대 이상"
+		FROM (
+			SELECT *
+			FROM (
+				SELECT JSSFC_NO, JSSFC_NM
+				FROM JSSFC_INFO
+				WHERE ACTVTY_AT = 'Y'
+					UNION ALL
+				SELECT 0, '계'
+			) A
+				LEFT JOIN (
+					SELECT CD_ID, CD_NM
+					FROM CMMN_CD
+					WHERE PARNTS_CD_ID = 'GRAD0000'
+						UNION ALL
+					SELECT '계', '계'
+				) B
+					ON A.JSSFC_NM = CD_ID
+					OR A.JSSFC_NO > 0
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					ISNULL(GRAD, '계') GRAD_CD,
+					SUM(CNT) TOTAL_CNT,
+					SUM(CASE WHEN AGRDE >= '70' THEN CNT END) AGE70_CNT,
+					SUM(CASE WHEN AGRDE = '60' THEN CNT END) AGE60_CNT,
+					SUM(CASE WHEN AGRDE = '50' THEN CNT END) AGE50_CNT,
+					SUM(CASE WHEN AGRDE = '40' THEN CNT END) AGE40_CNT,
+					SUM(CASE WHEN AGRDE = '30' THEN CNT END) AGE30_CNT,
+					SUM(CASE WHEN AGRDE &lt;= '20' THEN CNT END) AGE20_CNT
+				FROM GRAD_STATS A
+				WHERE 1 = 1
+			<if test='statsDe != null and statsDe != ""'>
+				AND STATS_DE = #{statsDe}
+			</if>
+			<if test='statsDe == null or statsDe == ""'>
+				AND STATS_DE = (SELECT TOP 1 STATS_DE FROM GRAD_STATS ORDER BY STATS_DE DESC)
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO, GRAD)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND A.CD_ID = B.GRAD_CD
+		ORDER BY A.JSSFC_NO, A.CD_NM
+	</select>
+	
+	<!-- 지역별(성별) 등급통계 -->
+	<select id="selectGradAreaGenderStatsList" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="kr.or.cwma.admin.stats.vo.GradStatsVO">
+		SELECT
+			A.JSSFC_NM SE_NM, SEXDSTN_NM SEXDSTN, B.*
+		FROM (
+			SELECT *
+			FROM (
+				SELECT JSSFC_NO, JSSFC_NM
+				FROM JSSFC_INFO
+				WHERE ACTVTY_AT = 'Y'
+					UNION ALL
+				SELECT 0, '계'
+			) A
+				LEFT JOIN (
+					SELECT '남' SEXDSTN, '남성' SEXDSTN_NM
+						UNION ALL
+					SELECT '녀' SEXDSTN, '여성' SEXDSTN_NM
+						UNION ALL
+					SELECT '계', '계'
+				) B
+					ON A.JSSFC_NM = SEXDSTN
+					OR A.JSSFC_NO > 0
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					ISNULL(SEXDSTN, '계') SEXDSTN,
+					SUM(CNT) TOTAL_CNT,
+					SUM(CASE WHEN ADRES = '서울' THEN CNT END) SEOUL_CNT,
+					SUM(CASE WHEN ADRES = '인천' THEN CNT END) INCHEON_CNT,
+					SUM(CASE WHEN ADRES = '부산' THEN CNT END) BUSAN_CNT,
+					SUM(CASE WHEN ADRES = '경기' THEN CNT END) KYEONGKI_CNT,
+					SUM(CASE WHEN ADRES = '강원' THEN CNT END) KANGWON_CNT,
+					SUM(CASE WHEN ADRES = '대전' THEN CNT END) DAEJEON_CNT,
+					SUM(CASE WHEN ADRES = '세종' THEN CNT END) SEJONG_CNT,
+					SUM(CASE WHEN ADRES = '광주' THEN CNT END) KWANGJU_CNT,
+					SUM(CASE WHEN ADRES = '대구' THEN CNT END) DAEGU_CNT,
+					SUM(CASE WHEN ADRES = '울산' THEN CNT END) ULSAN_CNT,
+					SUM(CASE WHEN ADRES = '제주' THEN CNT END) JEJU_CNT,
+					SUM(CASE WHEN ADRES = '충북' THEN CNT END) CHUNGBUK_CNT,
+					SUM(CASE WHEN ADRES = '충남' THEN CNT END) CHUNGNAM_CNT,
+					SUM(CASE WHEN ADRES = '전북' THEN CNT END) JEONBUK_CNT,
+					SUM(CASE WHEN ADRES = '전남' THEN CNT END) JEONNAM_CNT,
+					SUM(CASE WHEN ADRES = '경북' THEN CNT END) KYEONGBUK_CNT,
+					SUM(CASE WHEN ADRES = '경남' THEN CNT END) KYEONGNAM_CNT,
+					SUM(CASE WHEN ADRES = '기타' THEN CNT END) ETC_CNT
+				FROM GRAD_STATS A
+				WHERE 1 = 1
+			<if test='statsDe != null and statsDe != ""'>
+				AND STATS_DE = #{statsDe}
+			</if>
+			<if test='statsDe == null or statsDe == ""'>
+				AND STATS_DE = (SELECT TOP 1 STATS_DE FROM GRAD_STATS ORDER BY STATS_DE DESC)
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO, SEXDSTN)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND A.SEXDSTN = B.SEXDSTN
+		ORDER BY A.JSSFC_NO, SEXDSTN_NM
+	</select>
+	
+	<!-- 지역별(성별) 등급통계 엑셀목록 -->
+	<select id="selectGradAreaGenderStatsListXls" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			JSSFC_NM "직종",
+			SEXDSTN_NM "성별",
+			ISNULL(TOTAL_CNT, 0) "계",
+			ISNULL(SEOUL_CNT, 0) "서울",
+			ISNULL(INCHEON_CNT, 0) "인천",
+			ISNULL(BUSAN_CNT, 0) "부산",
+			ISNULL(KYEONGKI_CNT, 0) "경기",
+			ISNULL(KANGWON_CNT, 0) "강원",
+			ISNULL(DAEJEON_CNT, 0) "대전",
+			ISNULL(SEJONG_CNT, 0) "세종",
+			ISNULL(KWANGJU_CNT, 0) "광주",
+			ISNULL(DAEGU_CNT, 0) "대구",
+			ISNULL(ULSAN_CNT, 0) "울산",
+			ISNULL(JEJU_CNT, 0) "제주",
+			ISNULL(CHUNGBUK_CNT, 0) "충북",
+			ISNULL(CHUNGNAM_CNT, 0) "충남",
+			ISNULL(JEONBUK_CNT, 0) "전북",
+			ISNULL(JEONNAM_CNT, 0) "전남",
+			ISNULL(KYEONGBUK_CNT, 0) "경북",
+			ISNULL(KYEONGNAM_CNT, 0) "경남",
+			ISNULL(ETC_CNT, 0) "기타"
+		FROM (
+			SELECT *
+			FROM (
+				SELECT JSSFC_NO, JSSFC_NM
+				FROM JSSFC_INFO
+				WHERE ACTVTY_AT = 'Y'
+					UNION ALL
+				SELECT 0, '계'
+			) A
+				LEFT JOIN (
+					SELECT '남' SEXDSTN, '남성' SEXDSTN_NM
+						UNION ALL
+					SELECT '녀' SEXDSTN, '여성' SEXDSTN_NM
+						UNION ALL
+					SELECT '계', '계'
+				) B
+					ON A.JSSFC_NM = SEXDSTN
+					OR A.JSSFC_NO > 0
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					ISNULL(SEXDSTN, '계') SEXDSTN,
+					SUM(CNT) TOTAL_CNT,
+					SUM(CASE WHEN ADRES = '서울' THEN CNT END) SEOUL_CNT,
+					SUM(CASE WHEN ADRES = '인천' THEN CNT END) INCHEON_CNT,
+					SUM(CASE WHEN ADRES = '부산' THEN CNT END) BUSAN_CNT,
+					SUM(CASE WHEN ADRES = '경기' THEN CNT END) KYEONGKI_CNT,
+					SUM(CASE WHEN ADRES = '강원' THEN CNT END) KANGWON_CNT,
+					SUM(CASE WHEN ADRES = '대전' THEN CNT END) DAEJEON_CNT,
+					SUM(CASE WHEN ADRES = '세종' THEN CNT END) SEJONG_CNT,
+					SUM(CASE WHEN ADRES = '광주' THEN CNT END) KWANGJU_CNT,
+					SUM(CASE WHEN ADRES = '대구' THEN CNT END) DAEGU_CNT,
+					SUM(CASE WHEN ADRES = '울산' THEN CNT END) ULSAN_CNT,
+					SUM(CASE WHEN ADRES = '제주' THEN CNT END) JEJU_CNT,
+					SUM(CASE WHEN ADRES = '충북' THEN CNT END) CHUNGBUK_CNT,
+					SUM(CASE WHEN ADRES = '충남' THEN CNT END) CHUNGNAM_CNT,
+					SUM(CASE WHEN ADRES = '전북' THEN CNT END) JEONBUK_CNT,
+					SUM(CASE WHEN ADRES = '전남' THEN CNT END) JEONNAM_CNT,
+					SUM(CASE WHEN ADRES = '경북' THEN CNT END) KYEONGBUK_CNT,
+					SUM(CASE WHEN ADRES = '경남' THEN CNT END) KYEONGNAM_CNT,
+					SUM(CASE WHEN ADRES = '기타' THEN CNT END) ETC_CNT
+				FROM GRAD_STATS A
+				WHERE 1 = 1
+			<if test='statsDe != null and statsDe != ""'>
+				AND STATS_DE = #{statsDe}
+			</if>
+			<if test='statsDe == null or statsDe == ""'>
+				AND STATS_DE = (SELECT TOP 1 STATS_DE FROM GRAD_STATS ORDER BY STATS_DE DESC)
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO, SEXDSTN)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND A.SEXDSTN = B.SEXDSTN
+		ORDER BY A.JSSFC_NO, SEXDSTN_NM
+	</select>
+	
+	<!-- 지역별(등급) 등급통계 -->
+	<select id="selectGradAreaGradStatsList" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="kr.or.cwma.admin.stats.vo.GradStatsVO">
+		SELECT
+			A.JSSFC_NM SE_NM, CD_NM GRAD, B.*
+		FROM (
+			SELECT *
+			FROM (
+				SELECT JSSFC_NO, JSSFC_NM
+				FROM JSSFC_INFO
+				WHERE ACTVTY_AT = 'Y'
+					UNION ALL
+				SELECT 0, '계'
+			) A
+				LEFT JOIN (
+					SELECT CD_ID, CD_NM
+					FROM CMMN_CD
+					WHERE PARNTS_CD_ID = 'GRAD0000'
+						UNION ALL
+					SELECT '계', '계'
+				) B
+					ON A.JSSFC_NM = CD_ID
+					OR A.JSSFC_NO > 0
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					ISNULL(GRAD, '계') GRAD_CD,
+					SUM(CNT) TOTAL_CNT,
+					SUM(CASE WHEN ADRES = '서울' THEN CNT END) SEOUL_CNT,
+					SUM(CASE WHEN ADRES = '인천' THEN CNT END) INCHEON_CNT,
+					SUM(CASE WHEN ADRES = '부산' THEN CNT END) BUSAN_CNT,
+					SUM(CASE WHEN ADRES = '경기' THEN CNT END) KYEONGKI_CNT,
+					SUM(CASE WHEN ADRES = '강원' THEN CNT END) KANGWON_CNT,
+					SUM(CASE WHEN ADRES = '대전' THEN CNT END) DAEJEON_CNT,
+					SUM(CASE WHEN ADRES = '세종' THEN CNT END) SEJONG_CNT,
+					SUM(CASE WHEN ADRES = '광주' THEN CNT END) KWANGJU_CNT,
+					SUM(CASE WHEN ADRES = '대구' THEN CNT END) DAEGU_CNT,
+					SUM(CASE WHEN ADRES = '울산' THEN CNT END) ULSAN_CNT,
+					SUM(CASE WHEN ADRES = '제주' THEN CNT END) JEJU_CNT,
+					SUM(CASE WHEN ADRES = '충북' THEN CNT END) CHUNGBUK_CNT,
+					SUM(CASE WHEN ADRES = '충남' THEN CNT END) CHUNGNAM_CNT,
+					SUM(CASE WHEN ADRES = '전북' THEN CNT END) JEONBUK_CNT,
+					SUM(CASE WHEN ADRES = '전남' THEN CNT END) JEONNAM_CNT,
+					SUM(CASE WHEN ADRES = '경북' THEN CNT END) KYEONGBUK_CNT,
+					SUM(CASE WHEN ADRES = '경남' THEN CNT END) KYEONGNAM_CNT,
+					SUM(CASE WHEN ADRES = '기타' THEN CNT END) ETC_CNT
+				FROM GRAD_STATS A
+				WHERE 1 = 1
+			<if test='statsDe != null and statsDe != ""'>
+				AND STATS_DE = #{statsDe}
+			</if>
+			<if test='statsDe == null or statsDe == ""'>
+				AND STATS_DE = (SELECT TOP 1 STATS_DE FROM GRAD_STATS ORDER BY STATS_DE DESC)
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO, GRAD)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND A.CD_ID = B.GRAD_CD
+		ORDER BY A.JSSFC_NO, A.CD_NM
+	</select>
+	
+	<!-- 지역별(등급) 등급통계 엑셀목록 -->
+	<select id="selectGradAreaGradStatsListXls" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			JSSFC_NM "직종",
+			CD_NM "등급",
+			ISNULL(TOTAL_CNT, 0) "계",
+			ISNULL(SEOUL_CNT, 0) "서울",
+			ISNULL(INCHEON_CNT, 0) "인천",
+			ISNULL(BUSAN_CNT, 0) "부산",
+			ISNULL(KYEONGKI_CNT, 0) "경기",
+			ISNULL(KANGWON_CNT, 0) "강원",
+			ISNULL(DAEJEON_CNT, 0) "대전",
+			ISNULL(SEJONG_CNT, 0) "세종",
+			ISNULL(KWANGJU_CNT, 0) "광주",
+			ISNULL(DAEGU_CNT, 0) "대구",
+			ISNULL(ULSAN_CNT, 0) "울산",
+			ISNULL(JEJU_CNT, 0) "제주",
+			ISNULL(CHUNGBUK_CNT, 0) "충북",
+			ISNULL(CHUNGNAM_CNT, 0) "충남",
+			ISNULL(JEONBUK_CNT, 0) "전북",
+			ISNULL(JEONNAM_CNT, 0) "전남",
+			ISNULL(KYEONGBUK_CNT, 0) "경북",
+			ISNULL(KYEONGNAM_CNT, 0) "경남",
+			ISNULL(ETC_CNT, 0) "기타"
+		FROM (
+			SELECT *
+			FROM (
+				SELECT JSSFC_NO, JSSFC_NM
+				FROM JSSFC_INFO
+				WHERE ACTVTY_AT = 'Y'
+					UNION ALL
+				SELECT 0, '계'
+			) A
+				LEFT JOIN (
+					SELECT CD_ID, CD_NM
+					FROM CMMN_CD
+					WHERE PARNTS_CD_ID = 'GRAD0000'
+						UNION ALL
+					SELECT '계', '계'
+				) B
+					ON A.JSSFC_NM = CD_ID
+					OR A.JSSFC_NO > 0
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					ISNULL(GRAD, '계') GRAD_CD,
+					SUM(CNT) TOTAL_CNT,
+					SUM(CASE WHEN ADRES = '서울' THEN CNT END) SEOUL_CNT,
+					SUM(CASE WHEN ADRES = '인천' THEN CNT END) INCHEON_CNT,
+					SUM(CASE WHEN ADRES = '부산' THEN CNT END) BUSAN_CNT,
+					SUM(CASE WHEN ADRES = '경기' THEN CNT END) KYEONGKI_CNT,
+					SUM(CASE WHEN ADRES = '강원' THEN CNT END) KANGWON_CNT,
+					SUM(CASE WHEN ADRES = '대전' THEN CNT END) DAEJEON_CNT,
+					SUM(CASE WHEN ADRES = '세종' THEN CNT END) SEJONG_CNT,
+					SUM(CASE WHEN ADRES = '광주' THEN CNT END) KWANGJU_CNT,
+					SUM(CASE WHEN ADRES = '대구' THEN CNT END) DAEGU_CNT,
+					SUM(CASE WHEN ADRES = '울산' THEN CNT END) ULSAN_CNT,
+					SUM(CASE WHEN ADRES = '제주' THEN CNT END) JEJU_CNT,
+					SUM(CASE WHEN ADRES = '충북' THEN CNT END) CHUNGBUK_CNT,
+					SUM(CASE WHEN ADRES = '충남' THEN CNT END) CHUNGNAM_CNT,
+					SUM(CASE WHEN ADRES = '전북' THEN CNT END) JEONBUK_CNT,
+					SUM(CASE WHEN ADRES = '전남' THEN CNT END) JEONNAM_CNT,
+					SUM(CASE WHEN ADRES = '경북' THEN CNT END) KYEONGBUK_CNT,
+					SUM(CASE WHEN ADRES = '경남' THEN CNT END) KYEONGNAM_CNT,
+					SUM(CASE WHEN ADRES = '기타' THEN CNT END) ETC_CNT
+				FROM GRAD_STATS A
+				WHERE 1 = 1
+			<if test='statsDe != null and statsDe != ""'>
+				AND STATS_DE = #{statsDe}
+			</if>
+			<if test='statsDe == null or statsDe == ""'>
+				AND STATS_DE = (SELECT TOP 1 STATS_DE FROM GRAD_STATS ORDER BY STATS_DE DESC)
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO, GRAD)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND A.CD_ID = B.GRAD_CD
+		ORDER BY A.JSSFC_NO, A.CD_NM
+	</select>
+	
+	<!-- 분기별(등급) 등급통계 -->
+	<select id="selectGradQuarterStatsList" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="kr.or.cwma.admin.stats.vo.GradStatsVO">
+		SELECT
+			A.JSSFC_NM SE_NM, CD_NM GRAD, B.*
+		FROM (
+			SELECT *
+			FROM (
+				SELECT JSSFC_NO, JSSFC_NM
+				FROM JSSFC_INFO
+				WHERE ACTVTY_AT = 'Y'
+					UNION ALL
+				SELECT 0, '계'
+			) A
+				LEFT JOIN (
+					SELECT CD_ID, CD_NM
+					FROM CMMN_CD
+					WHERE PARNTS_CD_ID = 'GRAD0000'
+						UNION ALL
+					SELECT '계', '계'
+				) B
+					ON A.JSSFC_NM = CD_ID
+					OR A.JSSFC_NO > 0
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					ISNULL(GRAD, '계') GRAD_CD,
+					SUM(CNT) TOTAL_CNT,
+					SUM(CASE WHEN STATS_DE LIKE '%-03' THEN CNT END) GRAD1_CNT,
+					SUM(CASE WHEN STATS_DE LIKE '%-06' THEN CNT END) GRAD2_CNT,
+					SUM(CASE WHEN STATS_DE LIKE '%-09' THEN CNT END) GRAD3_CNT,
+					SUM(CASE WHEN STATS_DE LIKE '%-12' THEN CNT END) GRAD4_CNT
+				FROM GRAD_STATS A
+				WHERE 1 = 1
+			<if test='statsDe != null and statsDe != ""'>
+				AND STATS_DE LIKE CONCAT(#{statsDe}, '%')
+			</if>
+			<if test='statsDe == null or statsDe == ""'>
+				AND STATS_DE LIKE (SELECT TOP 1 CONCAT(LEFT(STATS_DE, 4), '%') FROM GRAD_STATS ORDER BY STATS_DE DESC)
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO, GRAD)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND A.CD_ID = B.GRAD_CD
+		ORDER BY A.JSSFC_NO, A.CD_NM
+	</select>
+	
+	<!-- 분기별(등급) 등급통계 엑셀목록 -->
+	<select id="selectGradQuarterStatsListXls" parameterType="kr.or.cwma.admin.stats.vo.GradStatsVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			JSSFC_NM "직종",
+			CD_NM "등급",
+			ISNULL(GRAD1_CNT, 0) "1분기",
+			ISNULL(GRAD2_CNT, 0) "2분기",
+			ISNULL(GRAD3_CNT, 0) "3분기",
+			ISNULL(GRAD4_CNT, 0) "4분기"
+		FROM (
+			SELECT *
+			FROM (
+				SELECT JSSFC_NO, JSSFC_NM
+				FROM JSSFC_INFO
+				WHERE ACTVTY_AT = 'Y'
+					UNION ALL
+				SELECT 0, '계'
+			) A
+				LEFT JOIN (
+					SELECT CD_ID, CD_NM
+					FROM CMMN_CD
+					WHERE PARNTS_CD_ID = 'GRAD0000'
+						UNION ALL
+					SELECT '계', '계'
+				) B
+					ON A.JSSFC_NM = CD_ID
+					OR A.JSSFC_NO > 0
+		) A
+			LEFT JOIN (
+				SELECT
+					ISNULL(JSSFC_NO, 0) JSSFC_NO,
+					ISNULL(GRAD, '계') GRAD_CD,
+					SUM(CNT) TOTAL_CNT,
+					SUM(CASE WHEN STATS_DE LIKE '%-03' THEN CNT END) GRAD1_CNT,
+					SUM(CASE WHEN STATS_DE LIKE '%-06' THEN CNT END) GRAD2_CNT,
+					SUM(CASE WHEN STATS_DE LIKE '%-09' THEN CNT END) GRAD3_CNT,
+					SUM(CASE WHEN STATS_DE LIKE '%-12' THEN CNT END) GRAD4_CNT
+				FROM GRAD_STATS A
+				WHERE 1 = 1
+			<if test='statsDe != null and statsDe != ""'>
+				AND STATS_DE LIKE CONCAT(#{statsDe}, '%')
+			</if>
+			<if test='statsDe == null or statsDe == ""'>
+				AND STATS_DE LIKE (SELECT TOP 1 CONCAT(LEFT(STATS_DE, 4), '%') FROM GRAD_STATS ORDER BY STATS_DE DESC)
+			</if>
+				GROUP BY ROLLUP(JSSFC_NO, GRAD)
+			) B
+				ON A.JSSFC_NO = B.JSSFC_NO
+				AND A.CD_ID = B.GRAD_CD
+		ORDER BY A.JSSFC_NO, A.CD_NM
+	</select>
+	
+	<sql id="listWhere">
+		<if test='nm != null and nm != ""'>
+			AND B.NM LIKE CONCAT('%', #{nm}, '%')
+		</if>
+		<if test='ihidnum != null and ihidnum != ""'>
+			AND B.IHIDNUM = #{ihidnum}
+		</if>
+		<if test='bgnDt != null and bgnDt != ""'>
+			AND A.ANSWRR_DT >= #{bgnDt}
+		</if>
+		<if test='endDt != null and endDt != ""'>
+			AND A.ANSWRR_DT &lt;= CONCAT(#{endDt}, ' 23:59:59')
+		</if>
+	</sql>
+	
+	<!-- 맞춤형통계 목록 갯수 조회 -->
+	<select id="selectClmserEduStatsListCnt" parameterType="kr.or.cwma.admin.stats.vo.ClmserEduStatsVO" resultType="int">
+		SELECT COUNT(1)
+		FROM CLMSER_EDU_SURVEY_ANSWRR A
+			INNER JOIN USER_MAIN_JSSFC B
+				ON A.IHIDNUM  = B.IHIDNUM
+		WHERE 1 = 1
+		<include refid="listWhere" />
+	</select>
+	
+	<!-- 맞춤형통계 목록 조회 -->
+	<select id="selectClmserEduStatsList" parameterType="kr.or.cwma.admin.stats.vo.ClmserEduStatsVO" resultType="kr.or.cwma.admin.stats.vo.ClmserEduStatsVO">
+		SELECT *
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY B.ANSWRR_DT DESC) ROWNUM, A.*
+			FROM (
+				SELECT
+					NM, IHIDNUM,
+					MAX(CASE WHEN RN = 1 THEN ANSWER END) ANSWER1,
+					MAX(CASE WHEN RN = 2 THEN ANSWER END) ANSWER2,
+					MAX(CASE WHEN RN = 3 THEN ANSWER END) ANSWER3,
+					MAX(CASE WHEN RN = 4 THEN ANSWER END) ANSWER4,
+					SURVEY_SN
+				FROM (
+					SELECT
+						ROW_NUMBER() OVER(PARTITION BY A.IHIDNUM, A.SURVEY_SN ORDER BY A1.QESITM_SN) RN, B.NM, B.IHIDNUM, A.SURVEY_SN, A2.ANSWER
+					FROM CLMSER_EDU_SURVEY_ANSWRR A
+						INNER JOIN USER_MAIN_JSSFC B
+							ON A.IHIDNUM  = B.IHIDNUM
+						INNER JOIN CLMSER_EDU_SURVEY_QESITM A1
+							ON A.SURVEY_SN = A1.SURVEY_SN
+						INNER JOIN CLMSER_EDU_SURVEY_ANSWER A2
+							ON A.ANSWRR_SN = A2.ANSWRR_SN
+							AND A1.QESITM_SN = A2.QESITM_SN
+					WHERE 1 = 1
+					<include refid="listWhere" />
+				) A
+				GROUP BY NM, IHIDNUM, SURVEY_SN
+			) A
+				INNER JOIN CLMSER_EDU_SURVEY_ANSWRR B
+					ON A.IHIDNUM = B.IHIDNUM
+					AND A.SURVEY_SN = B.SURVEY_SN
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+	
+	<!-- 맞춤형통계 엑셀목록조회 -->
+	<select id="selectClmserEduStatsListXls" parameterType="kr.or.cwma.admin.stats.vo.ClmserEduStatsVO" resultType="java.util.LinkedHashMap">
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY B.ANSWRR_DT DESC) "번호",
+			NM "이름",
+			A.IHIDNUM "주민등록번호",
+			ANSWER1 "1번",
+			ANSWER2 "2번",
+			ANSWER3 "3번",
+			ANSWER4 "4번"
+		FROM (
+			SELECT
+				NM, IHIDNUM,
+				MAX(CASE WHEN RN = 1 THEN ANSWER END) ANSWER1,
+				MAX(CASE WHEN RN = 2 THEN ANSWER END) ANSWER2,
+				MAX(CASE WHEN RN = 3 THEN ANSWER END) ANSWER3,
+				MAX(CASE WHEN RN = 4 THEN ANSWER END) ANSWER4,
+				SURVEY_SN
+			FROM (
+				SELECT
+					ROW_NUMBER() OVER(PARTITION BY A.IHIDNUM, A.SURVEY_SN ORDER BY A1.QESITM_SN) RN, B.NM, B.IHIDNUM, A.SURVEY_SN, A2.ANSWER
+				FROM CLMSER_EDU_SURVEY_ANSWRR A
+					INNER JOIN USER_MAIN_JSSFC B
+						ON A.IHIDNUM  = B.IHIDNUM
+					INNER JOIN CLMSER_EDU_SURVEY_QESITM A1
+						ON A.SURVEY_SN = A1.SURVEY_SN
+					INNER JOIN CLMSER_EDU_SURVEY_ANSWER A2
+						ON A.ANSWRR_SN = A2.ANSWRR_SN
+						AND A1.QESITM_SN = A2.QESITM_SN
+				WHERE 1 = 1
+				<include refid="listWhere" />
+			) A
+			GROUP BY NM, IHIDNUM, SURVEY_SN
+		) A
+			INNER JOIN CLMSER_EDU_SURVEY_ANSWRR B
+				ON A.IHIDNUM = B.IHIDNUM
+				AND A.SURVEY_SN = B.SURVEY_SN
+	</select>
+
+</mapper>

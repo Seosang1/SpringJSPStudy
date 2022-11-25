@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.jssfcInfo.mapper.JssfcInfoMapper">
+
+	<!-- 목록조회 -->
+	<select id="selectJssfcInfoList" parameterType="kr.or.cwma.admin.jssfcInfo.vo.JssfcInfoVO" resultType="kr.or.cwma.admin.jssfcInfo.vo.JssfcInfoVO">
+		SELECT 
+			ROW_NUMBER() OVER(ORDER BY JSSFC_NO) AS ROWNUM, 
+			JSSFC_NO,
+			JSSFC_NM,
+			STDR_DAYCNT,
+			SE,
+			ACTVTY_AT
+		FROM JSSFC_INFO
+		WHERE ACTVTY_AT = 'Y'
+		<if test='jssfcNo != null and jssfcNo != ""'>
+			AND JSSFC_NO = #{jssfcNo}
+		</if>
+		<if test='jssfcNm != null and jssfcNm != ""'>
+			AND JSSFC_NM = #{jssfcNm}
+		</if>
+		<if test='searchIhidnum != null and searchIhidnum != ""'>
+			AND JSSFC_NO IN (
+				SELECT JSSFC_NO
+				FROM USER_STAT
+				WHERE IHIDNUM = CONVERT(VARCHAR(14), #{searchIhidnum})
+			)
+		</if>
+		<!-- 퇴직공제/고용보험 근무이력 직종 -->
+		<if test='searchIhidnumByWorkYm != null and searchIhidnumByWorkYm != ""'>
+			AND JSSFC_NO IN (
+				SELECT C.JSSFC_NO
+				FROM CWMA_CAREER A
+					INNER JOIN JSSFC_RELATE B
+						ON A.JSSFC = B.CNTC_JSSFC_CD
+						AND B.CNTC_SE_CD = 'JRIC0001'
+					INNER JOIN JSSFC_INFO C
+						ON B.JSSFC_NO = C.JSSFC_NO
+				WHERE IHIDNUM = CONVERT(VARCHAR(14), #{searchIhidnumByWorkYm})
+
+				UNION ALL
+
+				SELECT B.JSSFC_NO
+				FROM CNTC_KCOMWEL_WORK A
+					INNER JOIN JSSFC_RELATE B
+						ON A.JSSFC_ODR = SUBSTRING(B.CNTC_JSSFC_CD, 1, 1)
+						AND A.JSSFC_CD = SUBSTRING(B.CNTC_JSSFC_CD, 2, 10)
+						AND B.CNTC_SE_CD = 'JRIC0003'
+				WHERE IHIDNUM = CONVERT(VARCHAR(14), #{searchIhidnumByWorkYm})
+			)
+			AND SE = 'JISE0001'
+		</if>
+		<if test='searchList != null'>
+			<foreach collection="searchList" item="list" open="AND JSSFC_NO IN(" close=")" separator=",">
+				#{list.jssfcNo}
+			</foreach>
+		</if>
+	</select>
+	
+</mapper>

@@ -1,0 +1,655 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.skill.mypage.mapper.MypageMapper">
+
+	<!-- 온라인 상담내역 상세조회 -->
+	<select id="selectQnaView" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO" resultType="kr.or.cwma.admin.bbs.vo.BbsVO">
+		SELECT 
+			SN,
+			CL,
+			SJ,
+			CN,
+			ANSWER,
+			DISPLAY_AT,
+			A.RGST_DT,
+			A.RGST_ID,
+			A.CHG_DT,
+			ANSWER_ID,
+			ANSWER_DT,
+			SNDNG_AT,
+			B.CD_NM CL_NM,
+			A.MBTLNUM,
+			ISNULL(A.NM, C.NM) NM,
+			E.USER_NAME ANSWER_NM
+		FROM BBS A
+			LEFT JOIN CMMN_CD B
+				ON A.CL = B.CD_ID
+			LEFT JOIN USER_INFO C
+				ON A.RGST_ID = C.USER_ID
+			LEFT JOIN ADMIN_INFO E
+				ON A.ANSWER_ID = E.USER_ID
+		WHERE SN = #{sn}
+		AND A.RGST_ID = #{rgstId}
+		AND A.SE = 'BSSE0003'
+	</select>
+	
+	<!-- 사용자비밀번호 변경 -->
+	<update id="updateUserPassword" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO">
+		UPDATE USER_INFO
+		SET PASSWORD = #{password},
+			PASSWORD_CHG_DT = GETDATE()
+		WHERE USER_ID = #{userId}
+	</update>
+	
+	<!-- 사용자주민번호 변경 -->
+	<update id="updateUserIhidnum" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO">
+		UPDATE USER_INFO
+		SET IHIDNUM = #{ihidnum},
+			CHG_ID = #{userId},
+			CHG_DT = GETDATE()
+		WHERE USER_ID = #{userId}
+	</update>
+	
+	<!-- 회원근로일수조회- 기능직만 -->
+	<select id="selectUserWorkDay" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.UserMainJssfcVO">
+		SELECT A.IHIDNUM, A1.JSSFC_NO, A1.JSSFC_NM, SUM(A.WORK_DAYCNT) WORK_DAYCNT
+		FROM USER_STAT (READUNCOMMITTED) A
+			INNER JOIN JSSFC_INFO A1
+				ON A.JSSFC_NO = A1.JSSFC_NO
+		WHERE A.IHIDNUM = CONVERT(VARCHAR(14), #{ihidnum})
+		AND A1.SE = 'JISE0001'
+		AND A1.ACTVTY_AT = 'Y'
+		GROUP BY A.IHIDNUM, A1.JSSFC_NO, A1.JSSFC_NM
+		ORDER BY A1.JSSFC_NO
+	</select>
+	
+	<!-- 마이페이지 기본정보 -->
+	<select id="selectUserBasicInfo" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="java.util.HashMap">
+		SELECT
+			MIN(MIN_YM) workBgnde, MAX(MAX_YM) workEndde, MAX(A.GRAD) grad, MAX(A1.CD_NM) gradNm, MAX(A2.JSSFC_NM) jssfcNm,
+			MAX(CONVERT(INT, (A.WORK_DAYCNT*(C.USE_JSSFC/100.0)) + (A.ETC_WORK_DAYCNT*(C.ETC_JSSFC/100.0)))) workDaycnt,
+			MAX(ROUND(((A.WORK_DAYCNT*(C.USE_JSSFC/100.0)) + (A.ETC_WORK_DAYCNT*(C.ETC_JSSFC/100.0)))/A2.STDR_DAYCNT, 2)) 	 gradCnt,
+			CONVERT(VARCHAR(10), MAX(D.EXECUT_DE), 23) executDe, 
+			CONVERT(VARCHAR(10), MAX(E.ISSU_DE), 23) issuDe
+		FROM USER_MAIN_JSSFC (READUNCOMMITTED) A
+			INNER JOIN CMMN_CD A1
+				ON A.GRAD = A1.CD_ID
+			INNER JOIN JSSFC_INFO A2
+				ON A.JSSFC_NO = A2.JSSFC_NO
+			INNER JOIN (
+				SELECT IHIDNUM, MIN(WORK_YM) MIN_YM, MAX(WORK_YM) MAX_YM
+				FROM CWMA_CAREER
+				GROUP BY IHIDNUM
+					UNION ALL
+				SELECT IHIDNUM, MIN(LABOR_ACQDT), MAX(LABOR_FRFDT)
+				FROM CNTC_KCOMWEL_WORK
+				WHERE SE = '상용'
+				GROUP BY IHIDNUM
+					UNION ALL
+				SELECT IHIDNUM, MIN(LABOR_YM), MAX(LABOR_YM)
+				FROM CNTC_KCOMWEL_WORK
+				WHERE SE = '일용'
+				GROUP BY IHIDNUM
+			) B
+				ON A.IHIDNUM = B.IHIDNUM
+			LEFT JOIN (
+				SELECT B.ISSU_TRGTER_IHIDNUM, MAX(A.ISSU_DE) ISSU_DE
+				FROM CRTF_ISSU A
+					INNER JOIN CRTF_REQST B
+						ON A.REQST_NO = B.REQST_NO
+				GROUP BY B.ISSU_TRGTER_IHIDNUM
+			) E
+				ON E.ISSU_TRGTER_IHIDNUM = A.IHIDNUM
+			, (
+				SELECT TOP 1 *
+				FROM GRAD_STDR A
+				WHERE APPLC_DE &lt;= CONVERT(VARCHAR(10), GETDATE(), 121)
+				ORDER BY SN DESC
+			) C, (
+				SELECT MAX(EXECUT_DE) EXECUT_DE
+				FROM BATCH_LOG
+				WHERE BATCH_CD = 'cwmaDdcer' 
+				AND BATCH_RESULT = 'BTST0003' 
+				AND CNT > 0
+			) D
+		WHERE A.IHIDNUM = CONVERT(VARCHAR(14), #{ihidnum})
+	</select>
+	
+	<!-- 마이페이지 - 등급별 직원수 -->
+	<select id="selectGradList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="java.util.HashMap">
+		SELECT A.CD_ID grad, A.JSSFC_NO jssfcNo, A.JSSFC_NM jssfcNm, ISNULL(CNT, 0) cnt
+		FROM (
+			SELECT CD_ID, CD_NM, A1.JSSFC_NO, A1.JSSFC_NM
+			FROM CMMN_CD A, JSSFC_INFO A1
+			WHERE A.PARNTS_CD_ID = 'GRAD0000'
+		) A
+			LEFT JOIN (
+				SELECT GRAD, JSSFC_NO, COUNT(1) CNT
+				FROM USER_MAIN_JSSFC (READUNCOMMITTED)
+				WHERE IHIDNUM IN (
+					SELECT IHIDNUM
+					FROM ISSU_AGRE
+					WHERE VALID_DT &gt; GETDATE()
+					AND DDC_JOIN_NO IN (
+						SELECT 공제계약번호 
+						FROM EPDBS_LINK.EPDBS.DBO.공제계약 
+						WHERE 사업자등록번호 = #{bizno}
+						<if test='ddcJoinNo != null and ddcJoinNo != ""'>
+						AND 공제계약번호 = #{ddcJoinNo}
+						</if>
+						AND 공제계약번호 IS NOT NULL
+					)
+				)
+				GROUP BY GRAD, JSSFC_NO
+			) B
+				ON A.CD_ID = B.GRAD
+				AND A.JSSFC_NO = B.JSSFC_NO
+		ORDER BY A.JSSFC_NO, A.CD_ID DESC
+	</select>
+	
+	<!-- 마이페이지 - 공사목록 검색조건 -->
+	<sql id="cntrctListWhere">
+		WHERE 1=1
+		<if test='searchSeNm != null and searchSeNm != ""'>
+		AND  T.seNm = #{searchSeNm}
+		</if>
+		<if test='cnstwkNm != null and cnstwkNm != ""'>
+		AND T.CNTRCT_NM LIKE CONCAT('%', #{cnstwkNm}, '%')
+		</if>
+	</sql>
+	
+	<!-- 마이페이지 - 공사목록 개수 -->
+	<select id="selectCntrctListCnt" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO"  resultType="int">
+		SELECT
+			 COUNT(1)
+		FROM (
+				SELECT 
+					A.공제계약번호	DDC_JOIN_NO
+					, A.공사명		CNTRCT_NM
+					, C.CD_NM		CNSTWK_STTUS_NM
+					, '퇴직공제'	seNm
+				FROM EPDBS_LINK.EPDBS.DBO.공제계약 A
+					INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CNTRCT_INFO B
+						ON A.공사번호 = B.CNTRCT_SEQ
+					INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CMMN_CD C
+						ON B.CNSTWK_STTUS_CD = C.CD_ID
+					<!-- 대리인 공사권한 승인여부 -->
+					<if test='se == "USSE0003" '>
+					INNER JOIN USER_CNTRCT_RELATE D 
+						ON D.DDC_JOIN_NO = A.공제계약번호
+								AND D.AUTHOR_CD = 'AGAU0001'
+								AND D.SE = 'AGSE0001'
+								AND D.USER_ID = #{userId}
+					</if>
+				WHERE 사업자등록번호 = #{bizno}
+				AND 공제계약번호 IS NOT NULL
+			
+				UNION ALL
+	
+				SELECT 
+					B.BPLC_NO		DDC_JOIN_NO
+					,B.BPLC_NM		CNTRCT_NM
+					,''				CNSTWK_STTUS_NM
+					,B.SE			seNm
+				FROM EPDBS_LINK.EPDBS.DBO.업체 A
+					INNER JOIN CNTC_KCOMWEL_WORK_CNSTWK B
+						ON A.사업자등록번호 = B.BIZNO
+					<!-- 대리인 공사권한 승인여부 -->
+					<if test='se == "USSE0003" '>
+					INNER JOIN USER_CNTRCT_RELATE D 
+						ON D.DDC_JOIN_NO = B.BPLC_NO
+								AND D.AUTHOR_CD = 'AGAU0001'
+								AND (
+									D.SE = 'AGSE0002'
+									OR D.SE = 'AGSE0003'
+								)
+								AND D.USER_ID = #{userId}
+					</if>
+				WHERE B.BIZNO = #{bizno}
+				AND B.BPLC_NO IS NOT NULL
+		) T	
+		<!-- 검색조건 -->
+		<include refid="cntrctListWhere" />
+	</select>
+	
+	<!-- 마이페이지 - 공사목록 -->
+	<select id="selectCntrctList" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.CntrctInfoVO">
+		SELECT
+			*
+		FROM(
+			SELECT 
+				 ROW_NUMBER() OVER(ORDER BY DDC_JOIN_NO DESC) AS ROWNUM
+				,DDC_JOIN_NO
+				,CNTRCT_NM
+				,CNSTWK_STTUS_NM
+				,seNm
+			FROM( 
+				SELECT
+					 T.DDC_JOIN_NO
+					,T.CNTRCT_NM
+					,T.CNSTWK_STTUS_NM
+					,T.seNm
+				FROM (
+						SELECT 
+							A.공제계약번호	DDC_JOIN_NO
+							, A.공사명		CNTRCT_NM
+							, C.CD_NM		CNSTWK_STTUS_NM
+							, '퇴직공제'	seNm
+						FROM EPDBS_LINK.EPDBS.DBO.공제계약 A
+							INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CNTRCT_INFO B
+								ON A.공사번호 = B.CNTRCT_SEQ
+							INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CMMN_CD C
+								ON B.CNSTWK_STTUS_CD = C.CD_ID
+							<!-- 대리인 공사권한 승인여부 -->
+							<if test='se == "USSE0003" '>
+							INNER JOIN USER_CNTRCT_RELATE D 
+								ON D.DDC_JOIN_NO = A.공제계약번호
+										AND D.AUTHOR_CD = 'AGAU0001'
+										AND D.SE = 'AGSE0001'
+										AND D.USER_ID = #{userId}
+							</if>
+						WHERE 사업자등록번호 = #{bizno}
+						AND 공제계약번호 IS NOT NULL
+					
+						UNION ALL
+			
+						SELECT 
+							B.BPLC_NO		DDC_JOIN_NO
+							,B.BPLC_NM		CNTRCT_NM
+							,''				CNSTWK_STTUS_NM
+							,B.SE			seNm
+						FROM EPDBS_LINK.EPDBS.DBO.업체 A
+							INNER JOIN CNTC_KCOMWEL_WORK_CNSTWK B
+								ON A.사업자등록번호 = B.BIZNO
+							<!-- 대리인 공사권한 승인여부 -->
+							<if test='se == "USSE0003" '>
+							INNER JOIN USER_CNTRCT_RELATE D 
+								ON D.DDC_JOIN_NO = B.BPLC_NO
+										AND D.AUTHOR_CD = 'AGAU0001'
+										AND (
+											D.SE = 'AGSE0002'
+											OR D.SE = 'AGSE0003'
+										)
+										AND D.USER_ID = #{userId}
+							</if>
+						WHERE B.BIZNO = #{bizno}
+						AND B.BPLC_NO IS NOT NULL
+				) T	
+				<!-- 검색조건 -->
+				<include refid="cntrctListWhere" />
+			) Z
+		) Y
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+	
+	<!-- 마이페이지 - 등급별 직원수(수요기관) -->
+	<select id="selectGradListForDminstt" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="java.util.HashMap">
+		SELECT A.CD_ID grad, A.JSSFC_NO jssfcNo, A.JSSFC_NM jssfcNm, ISNULL(CNT, 0) cnt
+		FROM (
+			SELECT CD_ID, CD_NM, A1.JSSFC_NO, A1.JSSFC_NM
+			FROM CMMN_CD A, JSSFC_INFO A1
+			WHERE A.PARNTS_CD_ID = 'GRAD0000'
+		) A
+			LEFT JOIN (
+				SELECT GRAD, JSSFC_NO, COUNT(1) CNT
+				FROM USER_MAIN_JSSFC (READUNCOMMITTED)
+				WHERE IHIDNUM IN (
+					SELECT IHIDNUM
+					FROM CWMA_CAREER
+					WHERE DDC_JOIN_NO IN (
+						SELECT 공제계약번호
+						FROM EPDBS_LINK.EPDBS.DBO.수요기관_NEW A
+							INNER JOIN  EPDBS_LINK.EPDBS.DBO.CWMA_CNTRCT_DMINSTT B
+								ON A.기관코드 = B.DMINSTT_CD
+							INNER JOIN EPDBS_LINK.EPDBS.DBO.공제계약 C
+								ON B.CNTRCT_SEQ = C.공사번호
+						WHERE A.사업자등록번호 = #{bizno}
+						AND 공제계약번호 IS NOT NULL
+					)
+				)
+				GROUP BY GRAD, JSSFC_NO
+			) B
+				ON A.CD_ID = B.GRAD
+				AND A.JSSFC_NO = B.JSSFC_NO
+		ORDER BY A.JSSFC_NO, A.CD_ID DESC
+	</select>
+	
+	<!-- 마이페이지 - 공사목록 개수(수요기관) -->
+	<select id="selectCntrctListForDminsttCnt" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="int">
+		SELECT
+			COUNT(1)
+		FROM (
+				SELECT 
+					  공제계약번호	DDC_JOIN_NO
+					, C.공사명		CNTRCT_NM
+					, D.CD_NM		CNSTWK_STTUS_NM
+					, '퇴직공제'	seNm
+				FROM EPDBS_LINK.EPDBS.DBO.수요기관_NEW A
+					INNER JOIN  EPDBS_LINK.EPDBS.DBO.CWMA_CNTRCT_DMINSTT B
+						ON A.기관코드 = B.DMINSTT_CD
+					INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CNTRCT_INFO B1
+						ON B.CNTRCT_SEQ = B1.CNTRCT_SEQ
+					INNER JOIN EPDBS_LINK.EPDBS.DBO.공제계약 C
+						ON B.CNTRCT_SEQ = C.공사번호
+					INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CMMN_CD D
+						ON B1.CNSTWK_STTUS_CD = D.CD_ID
+				WHERE A.사업자등록번호 = #{bizno}
+				AND 공제계약번호 IS NOT NULL
+			
+				UNION 
+	
+				SELECT 
+					 B.BPLC_NO		DDC_JOIN_NO
+					,B.BPLC_NM		CNTRCT_NM
+					,''				CNSTWK_STTUS_NM
+					,B.SE			seNm
+				FROM EPDBS_LINK.EPDBS.DBO.업체 A
+					INNER JOIN CNTC_KCOMWEL_WORK_CNSTWK B
+						ON A.사업자등록번호 = B.BIZNO
+				WHERE B.BIZNO = #{bizno}
+				AND B.BPLC_NO IS NOT NULL
+		) T	
+		<!-- 검색조건 -->
+		<include refid="cntrctListWhere" />
+	</select>
+	
+	<!-- 마이페이지 - 공사목록(수요기관) -->
+	<select id="selectCntrctListForDminstt" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.CntrctInfoVO">
+		SELECT 
+			*
+		FROM(
+			SELECT 
+				 ROW_NUMBER() OVER(ORDER BY DDC_JOIN_NO DESC) AS ROWNUM
+				,DDC_JOIN_NO
+				,CNTRCT_NM
+				,CNSTWK_STTUS_NM
+				,seNm
+			FROM( 
+				SELECT
+					 T.DDC_JOIN_NO
+					,T.CNTRCT_NM
+					,T.CNSTWK_STTUS_NM
+					,T.seNm
+				FROM (
+					SELECT 
+						  공제계약번호	DDC_JOIN_NO
+						, C.공사명		CNTRCT_NM
+						, D.CD_NM		CNSTWK_STTUS_NM
+						, '퇴직공제'	seNm
+					FROM EPDBS_LINK.EPDBS.DBO.수요기관_NEW A
+						INNER JOIN  EPDBS_LINK.EPDBS.DBO.CWMA_CNTRCT_DMINSTT B
+							ON A.기관코드 = B.DMINSTT_CD
+						INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CNTRCT_INFO B1
+							ON B.CNTRCT_SEQ = B1.CNTRCT_SEQ
+						INNER JOIN EPDBS_LINK.EPDBS.DBO.공제계약 C
+							ON B.CNTRCT_SEQ = C.공사번호
+						INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CMMN_CD D
+							ON B1.CNSTWK_STTUS_CD = D.CD_ID
+					WHERE A.사업자등록번호 = #{bizno}
+					AND 공제계약번호 IS NOT NULL
+				) T	
+				<!-- 검색조건 -->
+				<include refid="cntrctListWhere" />
+			) Z
+		) Y
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+	
+	<sql id="crtfIssuConsListWhere">
+		WHERE BIZNO = #{bizno}
+		<if test='cnstwkSttusCd == null or cnstwkSttusCd == ""'>
+			AND CNSTWK_STTUS_CD IN ('CRST0005', 'CRST0006')
+		</if>
+		<if test='cnstwkSttusCd != null and cnstwkSttusCd != ""'>
+			AND CNSTWK_STTUS_CD = #{cnstwkSttusCd}
+		</if>
+		<if test='se != null and se != ""'>
+			AND SE = #{se}
+		</if>
+		<if test='cnstwkNm != null and cnstwkNm != ""'>
+			AND CNSTWK_NM LIKE CONCAT('%', #{cnstwkNm}, '%')
+		</if>
+	</sql>
+	
+	<select id="selectCrtfIssuConsListCnt" parameterType="CorpCrtfIssuVO" resultType="int">
+		SELECT
+			COUNT(1)
+		FROM (
+			SELECT
+				공제계약번호 DDC_JOIN_NO,
+				A.공사명 CNSTWK_NM,
+				A.소재지주소 CNSTWK_ADRES,
+				B.CNSTWK_STTUS_CD,
+				CASE WHEN B.CNSTWK_STTUS_CD = 'CRST0006' THEN '준공완료' ELSE '시공중' END CNSTWK_STTUS_NM,
+				'퇴직공제' SE,
+				사업자등록번호 BIZNO
+			FROM epdbs_link.epdbs.dbo.공제계약 A
+				LEFT JOIN epdbs_link.epdbs.dbo.CWMA_CNTRCT_INFO B 
+					ON A.공사번호 = B.CNTRCT_SEQ
+			WHERE A.공제계약번호 IS NOT NULL
+			<!-- 대리인 공사권한 승인여부 -->
+			<if test='userSe == "USSE0003" '>
+				AND A.공제계약번호 IN (SELECT DDC_JOIN_NO FROM USER_CNTRCT_RELATE WHERE AUTHOR_CD = 'AGAU0001' AND SE = 'AGSE0001' AND USER_ID = #{userId} )
+			</if>
+			
+				UNION ALL
+			SELECT 
+				BPLC_NO,
+				BPLC_NM,
+				BPLC_ADRES,
+				'CRST0006',
+				'',
+				SE,
+				BIZNO
+			FROM CNTC_KCOMWEL_WORK_CNSTWK A
+			WHERE 1=1
+			<!-- 대리인 공사권한 승인여부 -->
+			<if test='userSe == "USSE0003" '>
+				AND A.BPLC_NO IN (SELECT DDC_JOIN_NO FROM USER_CNTRCT_RELATE WHERE AUTHOR_CD = 'AGAU0001' AND SE != 'AGSE0001' AND USER_ID = #{userId} )
+			</if>
+		) A
+		<include refid="crtfIssuConsListWhere" />
+	</select>
+	
+	<select id="selectCrtfIssuConsList" parameterType="CorpCrtfIssuVO" resultType="CorpCrtfIssuVO">
+		SELECT *  
+		FROM( 
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY A.DDC_JOIN_NO) AS ROWNUM,
+				DDC_JOIN_NO, CNSTWK_NM, CNSTWK_ADRES, CNSTWK_STTUS_CD, CNSTWK_STTUS_NM, SE
+			FROM (
+				SELECT
+					공제계약번호 DDC_JOIN_NO,
+					A.공사명 CNSTWK_NM,
+					A.소재지주소 CNSTWK_ADRES,
+					B.CNSTWK_STTUS_CD,
+					CASE WHEN B.CNSTWK_STTUS_CD = 'CRST0006' THEN '준공완료' ELSE '시공중' END CNSTWK_STTUS_NM,
+					'퇴직공제' SE,
+					사업자등록번호 BIZNO
+				FROM epdbs_link.epdbs.dbo.공제계약 A
+					LEFT JOIN epdbs_link.epdbs.dbo.CWMA_CNTRCT_INFO B 
+						ON A.공사번호 = B.CNTRCT_SEQ
+				WHERE A.공제계약번호 IS NOT NULL
+				<!-- 대리인 공사권한 승인여부 -->
+				<if test='userSe == "USSE0003" '>
+					AND A.공제계약번호 IN (SELECT DDC_JOIN_NO FROM USER_CNTRCT_RELATE WHERE AUTHOR_CD = 'AGAU0001' AND SE = 'AGSE0001' AND USER_ID = #{userId} )
+				</if>
+					UNION ALL
+				SELECT 
+					BPLC_NO,
+					BPLC_NM,
+					BPLC_ADRES,
+					'CRST0006',
+					'',
+					SE,
+					BIZNO
+				FROM CNTC_KCOMWEL_WORK_CNSTWK A
+				WHERE 1=1
+				<!-- 대리인 공사권한 승인여부 -->
+				<if test='userSe == "USSE0003" '>
+					AND A.BPLC_NO IN (SELECT DDC_JOIN_NO FROM USER_CNTRCT_RELATE WHERE AUTHOR_CD = 'AGAU0001' AND SE != 'AGSE0001' AND USER_ID = #{userId} )
+				</if>
+			) A
+			<include refid="crtfIssuConsListWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+	
+	<select id="selectCrtfIssuConsMenInfo" parameterType="CorpCrtfIssuVO" resultType="CorpCrtfIssuVO">
+		SELECT
+			A.공사명 CNSTWK_NM
+			,A.사업자등록번호 BIZNO
+			,CONCAT(CONVERT(VARCHAR(10), B.공사기간시작, 23), '~', CONVERT(VARCHAR(10), B.공사기간끝, 23)) CNSTWK_PERIOD 
+			,A.소재지주소 CNSTWK_ADRES
+			,A.소재지전화번호  CNSTWK_TEL
+			,CASE WHEN C.CNSTWK_STTUS_CD = 'CRST0006' THEN '준공완료' ELSE '시공중' END CNSTWK_STTUS_NM 
+		FROM epdbs_link.epdbs.dbo.공제계약 A
+			LEFT JOIN epdbs_link.epdbs.dbo.공사 B 
+				ON A.공사번호 = B.공사번호
+			LEFT JOIN epdbs_link.epdbs.dbo.CWMA_CNTRCT_INFO C 
+				ON A.공사번호 = C.CNTRCT_SEQ
+		WHERE A.공제계약번호 = #{ddcJoinNo}
+			UNION ALL
+		SELECT 
+			BPLC_NM,
+			BIZNO,
+			'',
+			BPLC_ADRES,
+			'',
+			''
+		FROM CNTC_KCOMWEL_WORK_CNSTWK
+		WHERE BPLC_NO = #{ddcJoinNo}
+	</select>
+	
+	<select id="selectCrtfIssuConsMenStaticInfo" parameterType="CorpCrtfIssuVO" resultType="java.util.HashMap">
+		SELECT
+			SUM(CASE WHEN GRAD = 'GRAD0001' THEN 1 ELSE 0 END) GRAD1CNT
+			,SUM(CASE WHEN GRAD = 'GRAD0002' THEN 1 ELSE 0 END) GRAD2CNT
+			,SUM(CASE WHEN GRAD = 'GRAD0003' THEN 1 ELSE 0 END) GRAD3CNT
+			,SUM(CASE WHEN GRAD = 'GRAD0004' THEN 1 ELSE 0 END) GRAD4CNT
+		FROM USER_MAIN_JSSFC (READUNCOMMITTED) A
+		WHERE 
+			IHIDNUM IN (
+				SELECT IHIDNUM FROM CWMA_CAREER WHERE DDC_JOIN_NO = #{ddcJoinNo}
+			)
+	</select>
+	
+	<sql id="crtfIssuConsMenListWhere">
+		WHERE IHIDNUM IN (
+			SELECT A.IHIDNUM 
+			FROM CWMA_CAREER A
+				INNER JOIN ISSU_AGRE B
+					ON A.IHIDNUM = B.IHIDNUM
+					AND A.DDC_JOIN_NO = B.DDC_JOIN_NO
+					AND B.VALID_DT >= GETDATE()
+			WHERE A.DDC_JOIN_NO = #{ddcJoinNo}
+				UNION ALL
+			SELECT A.IHIDNUM
+			FROM CNTC_KCOMWEL_WORK A
+				LEFT JOIN ISSU_AGRE B
+					ON A.IHIDNUM = B.IHIDNUM
+					AND A.BPLC_NO = B.DDC_JOIN_NO
+					AND B.VALID_DT >= GETDATE()
+			WHERE BPLC_NO = #{ddcJoinNo}
+			AND (
+				A.SE = '상용' 
+				OR B.IHIDNUM IS NOT NULL
+			)
+		)
+		<if test='nm != null and nm != ""'>
+			AND A.NM LIKE CONCAT('%', #{nm}, '%')
+		</if>
+	</sql>
+	
+	<select id="selectCrtfIssuConsMenListCnt" parameterType="CorpCrtfIssuVO" resultType="int">
+		SELECT
+			COUNT(1)
+		FROM USER_MAIN_JSSFC (READUNCOMMITTED) A
+		<include refid="crtfIssuConsMenListWhere" />
+	</select>
+	
+	<select id="selectCrtfIssuConsMenList" parameterType="CorpCrtfIssuVO" resultType="CorpCrtfIssuVO">
+		SELECT *  
+		FROM( 
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY A.IHIDNUM DESC) AS ROWNUM
+				,IHIDNUM
+				,NM
+				,JSSFC_NO
+				,(SELECT JSSFC_NM FROM JSSFC_INFO WHERE JSSFC_NO = A.JSSFC_NO) JSSFC_NM
+				,WORK_DAYCNT
+				,ETC_WORK_DAYCNT
+				,ISNULL(A1.우편번호, A.ZIP) ZIP
+				,ISNULL(A1.주소, A.ADRES) ADRES
+				,ISNULL(A1.전화번호, A.TELNO) TELNO
+				,GRAD
+				,(SELECT CD_NM FROM CMMN_CD WHERE CD_ID = A.GRAD) GRAD_NM
+				,(SELECT COUNT(1) FROM CRTF_REQST WHERE IHIDNUM = A.IHIDNUM AND RGST_ID = #{rgstId}) CRTF_CNT
+			FROM USER_MAIN_JSSFC (READUNCOMMITTED) A
+				LEFT JOIN (
+					SELECT TOP 1 *
+					FROM epdbs_link.epdbs.dbo.edi피공제자
+					WHERE 주소 &lt;> ''
+					AND 주소 IS NOT NULL
+					ORDER BY 신피공제자번호 DESC
+				) A1
+					ON A.IHIDNUM = A1.주민등록번호
+			<include refid="crtfIssuConsMenListWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+	
+	<!-- 맞춤형 설문 답변자 등록 -->
+	<insert id="insertClmserEduSurveyAnswrr" parameterType="kr.or.cwma.skill.customer.vo.SurveyAnswrrVO">
+		<selectKey keyProperty="answrrSn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(ANSWRR_SN), 0) +1 answrrSn FROM CLMSER_EDU_SURVEY_ANSWRR
+		</selectKey>
+		INSERT INTO CLMSER_EDU_SURVEY_ANSWRR(
+			ANSWRR_SN, SURVEY_SN, IHIDNUM, ANSWRR_DT
+		)VALUES(
+			#{answrrSn}, #{surveySn}, #{answrrId}, GETDATE()
+		)
+	</insert>
+	
+	<!-- 설문 답변 등록 -->
+	<insert id="insertClmserEduSurveyAnswer" parameterType="kr.or.cwma.skill.customer.vo.SurveyAnswerVO">
+		INSERT INTO CLMSER_EDU_SURVEY_ANSWER(
+			ANSWRR_SN, QESITM_SN, ANSWER
+		)VALUES(
+			#{answrrSn}, #{qesitmSn}, #{answer}
+		)
+	</insert>
+	
+	<!-- 마이페이지 - 공사상세(퇴직공제) -->
+	<select id="selectCntrctInfo" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.CntrctInfoVO">
+ 		SELECT 
+			A.공제계약번호 DDC_JOIN_NO
+			, 공사명 CNTRCT_NM
+			, C.CD_NM CNSTWK_STTUS_NM
+		FROM EPDBS_LINK.EPDBS.DBO.공제계약 A
+			INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CNTRCT_INFO B
+				ON A.공사번호 = B.CNTRCT_SEQ
+			INNER JOIN EPDBS_LINK.EPDBS.DBO.CWMA_CMMN_CD C
+				ON B.CNSTWK_STTUS_CD = C.CD_ID
+		WHERE 사업자등록번호 = #{bizno}
+		AND 1=1
+		AND 공제계약번호 IS NOT NULL
+		AND 공제계약번호 = #{ddcJoinNo}
+	</select>
+	
+	<!-- 마이페이지 - 공사상세(고용보험) -->
+	<select id="selectCntrctWorkInfo" parameterType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" resultType="kr.or.cwma.admin.userInfo.vo.CntrctInfoVO">
+ 		SELECT 
+			B.BPLC_NO		DDC_JOIN_NO
+			,B.BPLC_NM		CNTRCT_NM
+			,''				CNSTWK_STTUS_NM
+		FROM EPDBS_LINK.EPDBS.DBO.업체 A
+			INNER JOIN CNTC_KCOMWEL_WORK_CNSTWK B
+				ON A.사업자등록번호 = B.BIZNO
+		WHERE 사업자등록번호 = #{bizno}
+		AND 1=1
+		AND B.BPLC_NO IS NOT NULL
+		AND B.BPLC_NO = #{ddcJoinNo}
+	</select>
+	
+</mapper>

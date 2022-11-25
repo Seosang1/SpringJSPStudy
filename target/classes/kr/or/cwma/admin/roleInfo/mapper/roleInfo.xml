@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.roleInfo.mapper.RoleInfoMapper">
+
+	<!-- 목록조회 -->
+	<select id="selectRoleInfoList" parameterType="kr.or.cwma.admin.roleInfo.vo.RoleInfoVO" resultType="kr.or.cwma.admin.roleInfo.vo.RoleInfoVO">
+		SELECT 
+			ROLE_SN,
+			ROLE_NM,
+			ROLE_DC
+		FROM ROLE_INFO
+		WHERE 1 = 1 
+		<if test='roleNm != null and roleNm != ""'>
+			AND ROLE_NM LIKE CONCAT('%', #{roleNm}, '%')
+		</if>
+		<if test='roleDc != null and roleDc != ""'>
+			AND ROLE_DC LIKE CONCAT('%', #{roleDc}, '%')
+		</if>
+		ORDER BY ROLE_NM
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectRoleInfoView" parameterType="kr.or.cwma.admin.roleInfo.vo.RoleInfoVO" resultType="kr.or.cwma.admin.roleInfo.vo.RoleInfoVO">
+		SELECT 
+			ROLE_SN,
+			ROLE_NM,
+			ROLE_DC,
+			RGST_DT,
+			CHG_DT,
+			RGST_ID,
+			CHG_ID
+		FROM ROLE_INFO
+		WHERE ROLE_SN = #{roleSn}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertRoleInfo" parameterType="kr.or.cwma.admin.roleInfo.vo.RoleInfoVO">
+		<selectKey keyProperty="roleSn" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(ROLE_SN), 0) +1 roleNo FROM ROLE_INFO
+		</selectKey>
+		INSERT INTO ROLE_INFO(
+			ROLE_SN, ROLE_NM, ROLE_DC, RGST_DT, RGST_ID
+		)VALUES(
+			#{roleSn}, #{roleNm}, #{roleDc}, GETDATE(), #{rgstId}
+		)
+	</insert>
+
+	<!-- 수정 -->
+	<update id="updateRoleInfo" parameterType="kr.or.cwma.admin.roleInfo.vo.RoleInfoVO">
+		UPDATE ROLE_INFO
+		SET ROLE_NM = #{roleNm}
+			,ROLE_DC = #{roleDc}
+			,CHG_DT = #{chgDt}
+			,CHG_ID = #{chgId}
+		WHERE ROLE_SN = #{roleSn}
+	</update>
+
+	<!-- 삭제 -->
+	<delete id="deleteRoleInfo" parameterType="kr.or.cwma.admin.roleInfo.vo.RoleInfoVO">
+		DELETE FROM AUTHOR_ROLE_RELATE
+		WHERE ROLE_SN = #{roleSn};
+		
+		DELETE FROM ROLE_INFO
+		WHERE ROLE_SN = #{roleSn};
+	</delete>
+	
+	<!-- 권한관계 목록 -->
+	<select id="selectAuthorRoleRelateList" parameterType="kr.or.cwma.admin.roleInfo.vo.RoleInfoVO" resultType="kr.or.cwma.admin.roleInfo.vo.AuthorRoleRelateVO">
+		SELECT 
+			AUTHOR_CD,
+			ROLE_SN
+		FROM AUTHOR_ROLE_RELATE
+		WHERE ROLE_SN = #{roleSn}
+	</select>
+
+	<!-- 권한관계 등록 -->
+	<insert id="insertAuthorRoleRelate" parameterType="kr.or.cwma.admin.roleInfo.vo.AuthorRoleRelateVO">
+		INSERT INTO AUTHOR_ROLE_RELATE(
+			AUTHOR_CD, ROLE_SN
+		)VALUES(
+			#{authorCd}, #{roleSn}
+		)
+	</insert>
+
+	<!-- 권한관계 삭제 -->
+	<delete id="deleteAuthorRoleRelate" parameterType="kr.or.cwma.admin.roleInfo.vo.RoleInfoVO">
+		DELETE FROM AUTHOR_ROLE_RELATE
+		WHERE ROLE_SN = #{roleSn}
+	</delete>
+
+</mapper>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.survey.mapper.SurveyQesitmExMapper">
+
+	<!-- 등록 -->
+	<insert id="insertSurveyQesitmEx" parameterType="kr.or.cwma.admin.survey.vo.SurveyQesitmExVO">
+		<selectKey keyProperty="sn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM SURVEY_QESITM_EX
+		</selectKey>
+		INSERT INTO SURVEY_QESITM_EX(
+			SN, QESITM_SN, CN
+		)VALUES(
+			#{sn}, #{qesitmSn}, #{cn}
+		)
+	</insert>
+
+	<!-- 수정 -->
+	<update id="updateSurveyQesitmEx" parameterType="kr.or.cwma.admin.survey.vo.SurveyQesitmExVO">
+		UPDATE SURVEY_QESITM_EX
+		SET CN = #{cn}
+		WHERE SN = #{sn}
+		AND QESITM_SN = #{qesitmSn}
+	</update>
+
+	<!-- 삭제 -->
+	<delete id="deleteSurveyQesitmEx" parameterType="kr.or.cwma.admin.survey.vo.SurveyQesitmVO">
+		DELETE FROM SURVEY_QESITM_EX
+		WHERE QESITM_SN = #{qesitmSn}
+		<if test="exVO != null">
+			AND SN NOT IN
+			<foreach collection="exVO" open="(" close=")" separator="," item="exVO">
+				#{exVO.sn}
+			</foreach>
+		</if>
+	</delete>
+	
+	<!-- 목록조회 -->
+	<select id="selectSurveyQesitmExList" parameterType="kr.or.cwma.admin.survey.vo.SurveyQesitmVO" resultType="kr.or.cwma.admin.survey.vo.SurveyQesitmExVO">
+		SELECT 
+			SN,
+			QESITM_SN,
+			CN
+		FROM SURVEY_QESITM_EX
+		WHERE QESITM_SN = #{qesitmSn}
+		<if test="exVO != null">
+			AND SN NOT IN
+			<foreach collection="exVO" open="(" close=")" separator="," item="exVO">
+				#{exVO.sn}
+			</foreach>
+		</if>
+	</select>
+
+</mapper>

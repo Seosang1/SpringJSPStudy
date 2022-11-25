@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.authorInfo.mapper.AuthorInfoMapper">
+
+	<!-- 목록조회 -->
+	<select id="selectAuthorInfoList" parameterType="kr.or.cwma.admin.authorInfo.vo.AuthorInfoVO" resultType="kr.or.cwma.admin.authorInfo.vo.AuthorInfoVO">
+		SELECT 
+			AUTHOR_CD,
+			AUTHOR_DC,
+			AUTHOR_NM,
+			RGST_DT,
+			CHG_DT
+		FROM AUTHOR_INFO
+		WHERE 1 = 1 
+		<if test='authorCd != null and authorCd != ""'>
+			AND AUTHOR_CD = #{authorCd}
+		</if>
+		<if test='authorDc != null and authorDc != ""'>
+			AND AUTHOR_DC LIKE CONCAT('%', #{authorDc}, '%')
+		</if>
+		<if test='authorNm != null and authorNm != ""'>
+			AND AUTHOR_NM LIKE CONCAT('%', #{authorNm}, '%')
+		</if>
+		ORDER BY AUTHOR_NM
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectAuthorInfoView" parameterType="kr.or.cwma.admin.authorInfo.vo.AuthorInfoVO" resultType="kr.or.cwma.admin.authorInfo.vo.AuthorInfoVO">
+		SELECT 
+			AUTHOR_CD,
+			AUTHOR_DC,
+			AUTHOR_NM,
+			RGST_DT,
+			CHG_DT,
+			RGST_ID,
+			CHG_ID
+		FROM AUTHOR_INFO
+		WHERE AUTHOR_CD = #{authorCd}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertAuthorInfo" parameterType="kr.or.cwma.admin.authorInfo.vo.AuthorInfoVO">
+		INSERT INTO AUTHOR_INFO(
+			AUTHOR_CD, AUTHOR_DC, AUTHOR_NM, RGST_DT, RGST_ID
+		)VALUES(
+			#{authorCd}, #{authorDc}, #{authorNm}, GETDATE(), #{rgstId}
+		)
+	</insert>
+
+	<!-- 수정 -->
+	<update id="updateAuthorInfo" parameterType="kr.or.cwma.admin.authorInfo.vo.AuthorInfoVO">
+		UPDATE AUTHOR_INFO
+		SET AUTHOR_DC = #{authorDc}
+			,AUTHOR_NM = #{authorNm}
+			,CHG_DT = GETDATE()
+			,CHG_ID = #{chgId}
+		WHERE AUTHOR_CD = #{authorCd}
+	</update>
+
+	<!-- 삭제 -->
+	<delete id="deleteAuthorInfo" parameterType="kr.or.cwma.admin.authorInfo.vo.AuthorInfoVO">
+		DELETE FROM MENU_AUTHOR_RELATE
+		WHERE AUTHOR_CD = #{authorCd};
+		
+		DELETE FROM AUTHOR_INFO
+		WHERE AUTHOR_CD = #{authorCd};
+	</delete>
+	
+	<!-- 메뉴권한관계 등록 -->
+	<insert id="insertMenuAuthorRelate" parameterType="kr.or.cwma.admin.authorInfo.vo.MenuAuthorRelateVO">
+		INSERT INTO MENU_AUTHOR_RELATE(
+			MENU_SN, AUTHOR_CD
+		)VALUES(
+			#{menuSn}, #{authorCd}
+		)
+	</insert>
+
+	<!-- 메뉴권한관계 삭제 -->
+	<delete id="deleteMenuAuthorRelate" parameterType="kr.or.cwma.admin.authorInfo.vo.AuthorInfoVO">
+		DELETE FROM MENU_AUTHOR_RELATE
+		WHERE AUTHOR_CD = #{authorCd}
+	</delete>
+	
+	<!-- 메뉴권한관계 목록 조회 -->
+	<select id="selectMenuAuthorRelateList" parameterType="kr.or.cwma.admin.authorInfo.vo.AuthorInfoVO" resultType="kr.or.cwma.admin.authorInfo.vo.MenuAuthorRelateVO">
+		SELECT
+			MENU_SN,
+			AUTHOR_CD
+		FROM MENU_AUTHOR_RELATE
+		WHERE AUTHOR_CD = #{authorCd}
+	</select>
+
+</mapper>

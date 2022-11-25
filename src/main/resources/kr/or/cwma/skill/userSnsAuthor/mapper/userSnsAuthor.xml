@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.skill.userSnsAuthor.mapper.UserSnsAuthorMapper">
+
+	<sql id="selectUserSnsAuthor">
+		  USER_ID	userId	
+		, SE		se
+		, SNS_ID	snsId
+		, CONVERT(varchar,RGST_DT,23)	rgstDt
+	</sql>
+	
+	<!-- 회원 SNS 인증 목록조회 -->
+	<select id="selectUserSnsAuthorList" parameterType="kr.or.cwma.skill.userSnsAuthor.vo.UserSnsAuthorVO" resultType="kr.or.cwma.skill.userSnsAuthor.vo.UserSnsAuthorVO">
+    	SELECT
+    		<include refid="selectUserSnsAuthor"/>
+    	FROM	USER_SNS_AUTHOR
+    	WHERE	1=1
+    	<if test="userId != null and userId != ''">
+			and USER_ID = #{userId}
+		</if>
+		<if test="se != null and se != ''">
+			and SE = #{se}
+		</if>
+		<if test="snsId != null and snsId != ''">
+			and SNS_ID = #{snsId}
+		</if>
+    </select>
+    
+	<!-- 회원 SNS 인증 상세조회 -->
+	<select id="selectUserSnsAuthorView" parameterType="kr.or.cwma.skill.userSnsAuthor.vo.UserSnsAuthorVO" resultType="kr.or.cwma.skill.userSnsAuthor.vo.UserSnsAuthorVO">
+    	SELECT
+    		<include refid="selectUserSnsAuthor"/>
+    	FROM	USER_SNS_AUTHOR
+    	WHERE	1=1
+			and SE = #{se}
+    	<if test="userId != null and userId != ''">
+			and USER_ID = #{userId}
+		</if>
+		<if test="snsId != null and snsId != ''">
+			and SNS_ID = #{snsId}
+		</if>
+    </select>
+    
+	<!-- 회원 SNS 인증 등록 -->
+	<insert id="insertUserSnsAuthor" parameterType="kr.or.cwma.skill.userSnsAuthor.vo.UserSnsAuthorVO" >
+		INSERT INTO USER_SNS_AUTHOR
+				(
+			  	  USER_ID
+				, SE
+				, SNS_ID
+				, RGST_DT
+				)
+		VALUES
+				(
+				  #{userId}
+				, #{se}
+				, #{snsId}
+				, getDate()
+				);
+	</insert>
+	
+	<!-- 회원 SNS 인증 삭제 -->
+	<delete id="deleteUserSnsAuthor" parameterType="kr.or.cwma.skill.userSnsAuthor.vo.UserSnsAuthorVO">
+		DELETE from USER_SNS_AUTHOR
+		WHERE 1=1
+			AND USER_ID IS NOT NULL
+			AND USER_ID = #{userId}
+		<if test="se != null and se != ''">
+			AND SE = #{se}
+		</if>
+	</delete>
+
+</mapper>

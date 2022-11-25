@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.common.mapper.PgPayMapper">
+
+	<insert id="insertPgPay" parameterType="java.util.HashMap">
+		INSERT INTO PGPAY_INFO
+		(TRD_NO, 
+		REQST_NO, 
+		SANCTN_KND, 
+		[METHOD], 
+		BIZ_TYPE, 
+		MCHT_ID, 
+		MCHT_TRD_NO, 
+		MCHT_CUST_NM, 
+		MCHT_NAME, 
+		TRD_DTM, 
+		TRD_AMT, 
+		CARD_CD, 
+		CARD_NM, 
+		EMAIL, 
+		MCHT_CUST_ID, 
+		CARD_NO, 
+		CARD_APPR_NO, 
+		INSTMT_MON, 
+		INSTMT_TYPE, 
+		ORG_TRD_NO, 
+		ORG_TRD_DT, 
+		PAY_AMT, 
+		CSRCLSS_NO, 
+		CNCL_TYPE, 
+		PKT_HASH)
+		VALUES(${trdNo},  
+					${reqstNo},  
+					${sanctnKnd},  
+					${method},  
+					${bizType},  
+					${mchtId},  
+					${mchtTrdNo},  
+					${mchtCustNm},  
+					${mchtName},  
+					${trdDtm},  
+					${trdAmt},  
+					${cardCd},  
+					${cardNm},  
+					${email},  
+					${mchtCustId},  
+					${cardNo},  
+					${cardApprNo},  
+					${instmtMon},  
+					${instmtType},  
+					${orgTrdNo},  
+					${orgTrdDt},  
+					${payAmt},  
+					${csrclssNo},  
+					${cnclType},  
+					${pktHash})
+		
+	</insert>
+
+	<update id="updatePgPay">
+	
+	</update>
+	
+	<select id="selectPgPayCheck" resultType="java.util.HashMap">
+		SELECT *
+		FROM PGPAY_INFO
+		WHERE MCHT_TRD_NO = #{mchtTrdNo}
+	</select>
+	
+	
+	
+</mapper>

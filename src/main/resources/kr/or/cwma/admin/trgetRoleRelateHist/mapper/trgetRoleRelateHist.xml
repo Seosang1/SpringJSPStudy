@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.trgetRoleRelateHist.mapper.TrgetRoleRelateHistMapper">
+	
+	<sql id="where">
+		<if test='userId != null and userId != ""'>
+			AND A.TRGET = #{userId}
+		</if>
+		<if test='nm != null and nm != ""'>
+			AND (
+				B.USER_NAME LIKE CONCAT('%', #{nm} ,'%') 
+				OR C.DEPT_NAME LIKE CONCAT('%', #{nm} ,'%')
+			)
+		</if>
+		<if test='roleSn != null and roleSn != "" and roleSn != "0"'>
+			AND A.ROLE_SN = #{roleSn}
+		</if>
+		<if test='se != null and se != ""'>
+			AND A.SE = #{se}
+		</if>
+		<if test='chgSe != null and chgSe != ""'>
+			AND A.CHG_SE = #{chgSe}
+		</if>
+		<if test='bgnDt != null and bgnDt != ""'>
+			AND CONVERT(VARCHAR, A.RGST_DT, 23) &gt;= #{bgnDt}  
+		</if>
+		<if test='endDt != null and endDt != ""'>
+			AND CONVERT(VARCHAR, A.RGST_DT, 23) &lt;= #{endDt} 
+		</if>
+	</sql>
+	
+	<!-- 목록조회 -->
+	<select id="selectTrgetRoleRelateHistListCnt" parameterType="kr.or.cwma.admin.trgetRoleRelateHist.vo.TrgetRoleRelateHistVO" resultType="int">
+		SELECT 
+			COUNT(1)
+		FROM(
+			SELECT
+				 A.SN
+				,A.ROLE_SN
+				,A.SE
+				,A.TRGET
+				,A.CHG_SE
+				,A.RGST_DT
+				,A.RGST_ID
+			FROM TRGET_ROLE_RELATE_HIST A
+			LEFT JOIN EPDBS_LINK.SSO.DBO.V_USER B
+				ON A.SE='TRSE0001' AND A.TRGET = B.USER_ID
+			LEFT JOIN epdbs_link.sso.dbo.V_DEPT C
+				ON A.SE='TRSE0002' AND A.TRGET = C.DEPT_CD
+			
+			where 1=1
+			<include refid="where" />
+		) T
+	</select>
+	
+	
+	<select id="selectTrgetRoleRelateHistList" parameterType="kr.or.cwma.admin.trgetRoleRelateHist.vo.TrgetRoleRelateHistVO" resultType="kr.or.cwma.admin.trgetRoleRelateHist.vo.TrgetRoleRelateHistVO">
+		SELECT 
+			*
+		FROM(
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY SN DESC) AS ROWNUM
+				,SN
+				,ROLE_SN
+				,SE
+				,TRGET
+				,CHG_SE
+				,RGST_DT
+				,RGST_ID
+				,SE_NM
+				,USER_ID
+				,NM
+				,ROLE_NM
+				,CHG_SE_NM
+				,RGST_NM
+			FROM(
+				SELECT
+					 A.SN
+					,A.ROLE_SN
+					,A.SE
+					,A.TRGET
+					,A.CHG_SE
+					,CONVERT(VARCHAR, A.RGST_DT, 20) RGST_DT
+					,A.RGST_ID
+					,ISNULL((SELECT CD_NM FROM CMMN_CD WHERE CD_ID = A.SE),'') SE_NM
+					,ISNULL((SELECT USER_ID FROM EPDBS_LINK.SSO.DBO.V_USER WHERE A.SE='TRSE0001' AND USER_ID = A.TRGET ),'') USER_ID
+					,ISNULL(ISNULL(B.USER_NAME,C.DEPT_NAME),'') NM
+					,ISNULL((SELECT ROLE_NM FROM ROLE_INFO WHERE ROLE_SN = A.ROLE_SN),'') ROLE_NM
+					,ISNULL((SELECT CD_NM FROM CMMN_CD WHERE CD_ID = A.CHG_SE),'') CHG_SE_NM
+					,ISNULL((SELECT USER_NAME FROM EPDBS_LINK.SSO.DBO.V_USER WHERE USER_ID = A.RGST_ID),'') RGST_NM
+				FROM TRGET_ROLE_RELATE_HIST A
+				LEFT JOIN EPDBS_LINK.SSO.DBO.V_USER B
+					ON A.SE='TRSE0001' AND A.TRGET = B.USER_ID
+				LEFT JOIN epdbs_link.sso.dbo.V_DEPT C
+					ON A.SE='TRSE0002' AND A.TRGET = C.DEPT_CD
+				
+				where 1=1
+				<include refid="where" />
+			) T
+		) Z
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum}
+	</select>
+
+</mapper>

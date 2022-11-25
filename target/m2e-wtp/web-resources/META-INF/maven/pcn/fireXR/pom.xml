@@ -1,0 +1,493 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>pcn</groupId>
+	<artifactId>fireXR</artifactId>
+	<packaging>war</packaging>
+	<version>1.0.0</version>
+	<name>fireXR</name>
+	<url>http://www.egovframe.go.kr</url>
+
+	<licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    
+	<properties>
+	    <spring.maven.artifact.version>4.3.22.RELEASE</spring.maven.artifact.version>
+		<egovframework.rte.version>3.9.0</egovframework.rte.version>
+		<webapp.lib>${basedir}/src/main/webapp/WEB-INF/lib</webapp.lib>
+	</properties>
+
+	<repositories>
+		<repository>
+			<id>mvn2s</id>
+			<url>https://repo1.maven.org/maven2/</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>egovframe</id>
+			<url>http://maven.egovframe.kr:8080/maven/</url>			
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+        <repository>
+            <id>egovframe2</id>
+            <url>http://www.egovframe.go.kr/maven/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+	</repositories>
+
+	<dependencies>
+		<!-- 표준프레임워크 실행환경 -->
+        <dependency>
+		    <groupId>egovframework.rte</groupId>
+		    <artifactId>egovframework.rte.ptl.mvc</artifactId>
+		    <version>${egovframework.rte.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>log4j-core</artifactId>
+					<groupId>org.apache.logging.log4j</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>log4j-slf4j-impl</artifactId>
+					<groupId>org.apache.logging.log4j</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>log4j-over-slf4j</artifactId>
+					<groupId>org.slf4j</groupId>
+				</exclusion>
+			</exclusions>
+        </dependency>
+        <dependency>
+		    <groupId>egovframework.rte</groupId>
+		    <artifactId>egovframework.rte.psl.dataaccess</artifactId>
+		    <version>${egovframework.rte.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>log4j-core</artifactId>
+					<groupId>org.apache.logging.log4j</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>log4j-slf4j-impl</artifactId>
+					<groupId>org.apache.logging.log4j</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>log4j-over-slf4j</artifactId>
+					<groupId>org.slf4j</groupId>
+				</exclusion>
+			</exclusions>
+        </dependency>
+		<!-- //표준프레임워크 실행환경 -->
+
+		<!-- 자바서블릿 -->
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<version>3.0.1</version>
+		</dependency>
+        <dependency>
+		    <groupId>javax.servlet</groupId>
+		    <artifactId>jstl</artifactId>
+		    <version>1.2</version>
+        </dependency>
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>servlet-api</artifactId>
+			<version>2.5</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax.servlet.jsp</groupId>
+			<artifactId>javax.servlet.jsp-api</artifactId>
+			<version>2.3.1</version>
+			<scope>provided</scope>
+		</dependency>
+        <!-- //자바서블릿 -->
+        
+        <!-- 벨리데이션 -->
+		<dependency>
+			<groupId>javax.validation</groupId>
+			<artifactId>validation-api</artifactId>
+			<version>1.1.0.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-validator</artifactId>
+			<version>5.0.1.Final</version>
+		</dependency>
+		<!-- //벨리데이션 -->
+		
+		<!-- apache common -->
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-dbcp2</artifactId>
+		    <version>2.4.0</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>2.4</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-fileupload</groupId>
+			<artifactId>commons-fileupload</artifactId>
+			<version>1.3.1</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-lang</groupId>
+			<artifactId>commons-lang</artifactId>
+			<version>2.6</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+			<version>1.10</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
+			<version>1.8.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>4.5.13</version>
+		</dependency>
+		<!-- //apache common -->
+		
+		<!-- json -->
+		<dependency>
+			<groupId>org.codehaus.jackson</groupId>
+			<artifactId>jackson-mapper-asl</artifactId>
+			<version>1.9.13</version>
+		</dependency>
+		<dependency>
+			<groupId>com.googlecode.json-simple</groupId>
+			<artifactId>json-simple</artifactId>
+			<version>1.1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.6.2</version>
+		</dependency>
+		<!-- //json -->
+		
+		<!-- logback -->
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.7</version>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.0.13</version>
+		</dependency>
+		<dependency>
+			<groupId>org.logback-extensions</groupId>
+			<artifactId>logback-ext-spring</artifactId>
+			<version>0.1.5</version>
+		</dependency>
+		<dependency>
+			<groupId>org.lazyluke</groupId>
+			<artifactId>log4jdbc-remix</artifactId>
+			<version>0.2.6</version>
+		</dependency>
+		<!-- //logback -->
+		
+		<!-- aspectj -->
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjrt</artifactId>
+			<version>1.8.6</version>
+		</dependency>
+		<!-- //aspectj -->
+		
+		<!-- sitemash -->
+		<dependency>
+			<groupId>opensymphony</groupId>
+			<artifactId>sitemesh</artifactId>
+			<version>2.4.2</version>
+		</dependency>
+		<!-- //sitemash -->
+		
+		<!-- VO -->
+		<dependency>
+		    <groupId>org.projectlombok</groupId>
+		    <artifactId>lombok</artifactId>
+		    <version>1.18.4</version>
+		    <scope>provided</scope>
+		</dependency>
+		<!-- //VO -->
+
+		<!-- db -->
+		<dependency>
+			<groupId>org.hsqldb</groupId>
+			<artifactId>hsqldb</artifactId>
+			<version>2.3.2</version>
+		</dependency>
+		<dependency>
+			<groupId>com.microsoft.sqlserver</groupId>
+			<artifactId>mssql-jdbc</artifactId>
+			<version>6.4.0.jre8</version>
+		</dependency>
+				
+		<dependency>
+		    <groupId>mysql</groupId>
+		    <artifactId>mysql-connector-java</artifactId>
+		    <version>8.0.22</version>
+		</dependency>
+		<!-- //db -->
+		
+		<!-- //db -->
+		
+		<!-- EXCEL -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>3.14</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>3.14</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml-schemas</artifactId>
+			<version>3.14</version>
+		</dependency>
+		<!-- //EXCEL -->
+		<!-- CROSS UPLOADER -->
+		<dependency>
+			<groupId>org.ini4j</groupId>
+			<artifactId>ini4j</artifactId>
+			<version>0.5.4</version>
+		</dependency>
+		<dependency>
+			<groupId>com.drewnoakes</groupId>
+			<artifactId>metadata-extractor</artifactId>
+			<version>2.6.2</version>
+		</dependency>
+		<!-- //CROSS UPLOADER -->
+		<!-- 구글 jwt jar -->
+		<dependency>
+		    <groupId>com.auth0</groupId>
+		    <artifactId>java-jwt</artifactId>
+		    <version>3.10.3</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.fasterxml.jackson.core</groupId>
+		    <artifactId>jackson-databind</artifactId>
+		    <version>2.6.3</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.fasterxml.jackson.core</groupId>
+		    <artifactId>jackson-annotations</artifactId>
+		    <version>2.6.3</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.fasterxml.jackson.core</groupId>
+		    <artifactId>jackson-core</artifactId>
+		    <version>2.6.3</version>
+		</dependency>
+		
+		<!-- //구글 jwt jar -->
+		
+	<!-- 로컬라이브러리 -->
+		<!-- CROSS UPLOADER -->
+		<dependency>
+			<groupId>CrossUploader</groupId>
+			<artifactId>CrossUploader</artifactId>
+			<version>1.0.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/CrossUploader.java.jar</systemPath>
+		</dependency>
+		<!-- //CROSS UPLOADER -->
+		<!-- 인증서모듈용 jar -->
+		<dependency>
+			<groupId>signgate</groupId>
+			<artifactId>ldapjdk</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/ldapjdk.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>signgate</groupId>
+			<artifactId>libgpkiapi_jni</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/libgpkiapi_jni.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>signgate</groupId>
+			<artifactId>SecuKitPasswd</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/SecuKitPasswd.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>signgate</groupId>
+			<artifactId>sggpki</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/sggpki.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>signgate</groupId>
+			<artifactId>sgsecukit</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/sgsecukit.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>signgate</groupId>
+			<artifactId>signgate_common</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/signgate_common.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>signgate</groupId>
+			<artifactId>signgateCrypto</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/signgateCrypto.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>NiceID</groupId>
+			<artifactId>NiceID</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/NiceID.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>NiceID</groupId>
+			<artifactId>Ipin</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/IPIN2Client.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>NiceID</groupId>
+			<artifactId>NameCheck</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/NameCheck.jar</systemPath>
+		</dependency>
+		<!-- //인증서모듈용 jar -->
+		<!-- 키보드보안 jar -->
+		<dependency>
+			<groupId>scsk</groupId>
+			<artifactId>scsk</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/scsk.jar</systemPath>
+		</dependency>
+		<!-- //키보드보안 jar -->
+		
+		<!-- SSO모듈 -->
+		<dependency>
+			<groupId>kcasecrypto</groupId>
+			<artifactId>kcasecrypto</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/kcasecrypto.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>KSignAccess-common</groupId>
+			<artifactId>KSignAccess-common</artifactId>
+			<version>4.0.2</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/KSignAccess-common-4.0.2.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>KSignAccessLib</groupId>
+			<artifactId>KSignAccessLib</artifactId>
+			<version>2.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/KSignAccessLib2.0.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>KSignAccessSSOAgent-w</groupId>
+			<artifactId>KSignAccessSSOAgent-w</artifactId>
+			<version>4.2.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/KSignAccessSSOAgent-w-4.2.0.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>KSignLicenseGenerator</groupId>
+			<artifactId>KSignLicenseGenerator</artifactId>
+			<version>2.7.8</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/KSignLicenseGenerator-2.7.8.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>KSignLicenseVerify</groupId>
+			<artifactId>KSignLicenseVerify</artifactId>
+			<version>2.5.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/KSignLicenseVerify-2.5.0.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>SSOUtil</groupId>
+			<artifactId>SSOUtil</artifactId>
+			<version>2.5.0</version>
+			<scope>system</scope>
+			<systemPath>${webapp.lib}/SSOUtil-2.5.jar</systemPath>
+		</dependency>
+		<!-- //SSO모듈 -->
+	<!-- //로컬라이브러리 -->
+	</dependencies>
+
+	<build>
+<!-- 	운영서버 빌드시 필요 로컬에서 무필요 -->
+<!-- 		<sourceDirectory>src</sourceDirectory> -->
+		<!-- <plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.1</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>2.4</version>
+				<configuration>
+					<webappDirectory>src/main/webapp</webappDirectory>
+					<failOnMissingWebXml>false</failOnMissingWebXml>
+				</configuration>
+			</plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.1</version>
+            </plugin>
+		</plugins> -->
+	</build>
+
+</project>

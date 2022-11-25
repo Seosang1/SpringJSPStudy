@@ -1,0 +1,671 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.common.mapper.CommonMapper">
+
+	<!-- 사용자정보조회 -->
+	<select id="selectUserView" parameterType="kr.or.cwma.admin.common.vo.UserVO" resultType="kr.or.cwma.admin.common.vo.UserVO">
+		SELECT
+			USER_ID, USER_NAME, DEPT_CD, EMAIL, PASSWORD
+		FROM ADMIN_INFO
+		WHERE USER_ID = #{userId}
+	</select>
+
+	<!-- 사용자목록조회 -->
+	<select id="selectUserList" parameterType="kr.or.cwma.admin.common.vo.UserVO" resultType="kr.or.cwma.admin.common.vo.UserVO">
+		SELECT
+			USER_ID, USER_NAME, DEPT_CD, USER_RANK, BRFFC_NM, DDC_ASTC_CD, BRFFC_ABRVT_NM, EMAIL, PASSWORD, B.ROLE_SN
+		FROM epdbs_link.sso.dbo.V_USER A
+			LEFT JOIN TRGET_ROLE_RELATE B
+				ON A.USER_ID = B.TRGET
+				AND B.SE = 'TRSE0001'
+		WHERE 1 = 1
+		<if test='deptCd != null and deptCd != ""'>
+			AND A.DEPT_CD = #{deptCd}
+		</if>
+		<if test='ddcAstcCd != null and ddcAstcCd != ""'>
+			AND A.DDC_ASTC_CD = #{ddcAstcCd}
+		</if>
+		<if test='userName != null and userName != ""'>
+			AND A.USER_NAME LIKE CONCAT('%', #{userName}, '%')
+		</if>
+	</select>
+
+	<!-- 부서목록조회 -->
+	<select id="selectDeptList" parameterType="kr.or.cwma.admin.common.vo.DeptVO" resultType="kr.or.cwma.admin.common.vo.DeptVO">
+		SELECT
+			DEPT_CD, DEPT_NAME, DDC_ASTC_CD, BRFFC_NM, B.ROLE_SN
+		FROM epdbs_link.sso.dbo.V_DEPT A
+			LEFT JOIN TRGET_ROLE_RELATE B
+				ON A.DEPT_CD = B.TRGET
+				AND B.SE = 'TRSE0002'
+		WHERE 1 = 1
+		<if test='pdeptCd != null and pdeptCd != ""'>
+			AND A.PDEPT_CD = #{pdeptCd}
+		</if>
+		<if test='upperDdcAstcCd != null and upperDdcAstcCd != ""'>
+			AND A.UPPER_DDC_ASTC_CD = #{upperDdcAstcCd}
+		</if>
+		<if test='deptName != null and deptName != ""'>
+			AND A.DEPT_NAME LIKE CONCAT('%', #{deptName}, '%')
+		</if>
+		ORDER BY A.DDC_ASTC_CD, A.ORDR
+	</select>
+	
+	<!-- 사용자 메뉴목록 조회 -->
+	<select id="selectUserMenuList" parameterType="kr.or.cwma.admin.common.vo.UserVO" resultType="kr.or.cwma.admin.menuInfo.vo.MenuInfoVO">
+		WITH MENU_INFO_CTE AS (
+			SELECT
+				A.*,
+				CONVERT(VARCHAR(255), MENU_SN) GRP,
+				CONVERT(VARCHAR(255), + RIGHT('0'+CONVERT(VARCHAR(255), MENU_ORDR), 2)) SORT,
+				CONVERT(VARCHAR(255), MENU_NM) DEPTH_FULLNAME,
+				1 DEPTH
+			FROM MENU_INFO A
+			WHERE UPPER_MENU_SN = 0
+				UNION ALL
+			SELECT
+				A.*, CONVERT(VARCHAR(255), CONVERT(NVARCHAR, B.MENU_SN)) GRP
+				, CONVERT(VARCHAR(255), CONVERT(NVARCHAR, B.SORT) + ' > ' + RIGHT('0'+CONVERT(VARCHAR(255), A.MENU_ORDR), 2)) SORT
+				, CONVERT(VARCHAR(255), CONVERT(NVARCHAR,B.DEPTH_FULLNAME) + ' > ' + CONVERT(VARCHAR(255), A.MENU_NM)) DEPTH_FULLNAME
+				, B.DEPTH+1 DEPTH
+			FROM MENU_INFO A, MENU_INFO_CTE B
+			WHERE A.UPPER_MENU_SN = B.MENU_SN
+		)
+		SELECT
+			DISTINCT A.*
+		FROM MENU_INFO_CTE A
+			LEFT JOIN MENU_AUTHOR_RELATE B
+				ON A.MENU_SN = B.MENU_SN
+			LEFT JOIN AUTHOR_ROLE_RELATE C
+				ON B.AUTHOR_CD = C.AUTHOR_CD
+		WHERE A.USE_AT = 'Y'
+		AND (
+			A.BASS_AUTHOR_AT = 'Y'
+			OR C.ROLE_SN IN (
+				SELECT TOP 1 ROLE_SN
+				FROM TRGET_ROLE_RELATE
+				WHERE (
+					SE = 'TRSE0001' --아이디
+					AND TRGET = #{userId}
+				)
+				OR (
+					SE = 'TRSE0002' --부서
+					AND TRGET = #{deptCd}
+				)
+				ORDER BY SE
+			)
+		)
+		ORDER BY SORT
+	</select>
+
+	<!-- 엑셀다운이력 등록 -->
+	<insert id="insertExcelDwldHist" parameterType="kr.or.cwma.admin.common.vo.ExcelDwldHistVO">
+		<selectKey keyProperty="sn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM EXCEL_DWLD_HIST
+		</selectKey>
+		INSERT INTO EXCEL_DWLD_HIST(
+			SN, CN, IHIDNUM_INDICT_AT, URL, RGST_ID, RGST_DT
+		)VALUES(
+			#{sn}, #{cn}, #{ihidnumIndictAt}, #{url}, #{rgstId}, GETDATE()
+		)
+	</insert>
+
+	<!-- 온라인상담건수 - 메인페이지 -->
+	<select id="selectQnaCnt" resultType="java.util.HashMap">
+		SELECT
+			COUNT(1) totalCnt, COUNT(CASE WHEN ANSWER_ID IS NULL THEN 1 END) notAnswerCnt, 
+			COUNT(CASE WHEN ANSWER_ID IS NOT NULL THEN 1 END) answerCnt
+		FROM BBS
+		WHERE SE = 'BSSE0003'
+	</select>
+	
+	<!-- 오늘의 방문자 - 메인페이지 -->
+	<select id="selectUserLoginStatsToday" resultType="java.util.HashMap">
+		SELECT *
+		FROM (
+			SELECT LOGIN_DE loginDe, SUM(CNT) cnt
+			FROM USER_LOGIN_STATS
+			GROUP BY LOGIN_DE
+			WITH ROLLUP
+		) A
+		WHERE loginDe = CONVERT(VARCHAR(10), GETDATE(), 23)
+		OR loginDe IS NULL
+	</select>
+	
+	<!-- 유형별 방문자 - 메인페이지 -->
+	<select id="selectUserLoginStatsSe" resultType="java.util.HashMap">
+		SELECT A.CD_NM seNm, B.se, b.cnt
+		FROM CMMN_CD A
+			LEFT JOIN (
+				SELECT SE, SUM(CNT) CNT
+				FROM USER_LOGIN_STATS
+				GROUP BY SE
+			) B
+				ON A.CD_ID = B.SE
+		WHERE PARNTS_CD_ID = 'USSE0000'
+		ORDER BY A.CD_ID
+	</select>
+	
+	<!-- 발급수수료합계 - 메인페이지 -->
+	<select id="selectIssueFee" resultType="java.util.HashMap">
+		SELECT 
+		(
+			SELECT
+				ISNULL(SUM(ISSU_AMOUNT), 0) AMOUNT
+			FROM CRTF_REQST
+			WHERE RGST_DT >= CONVERT(VARCHAR(8), DATEADD(MONTH, -1, GETDATE()), 23)+'01'
+			AND RGST_DT &lt; CONVERT(VARCHAR(8), GETDATE(), 23)+'01'
+		) monthAmount,
+		(
+			SELECT
+				ISNULL(SUM(ISSU_AMOUNT), 0) AMOUNT
+			FROM CRTF_REQST
+			WHERE RGST_DT >= CONVERT(VARCHAR(8), DATEADD(MONTH, -1, GETDATE()), 23)+'01'
+			AND RGST_DT &lt; CONVERT(VARCHAR(8), GETDATE(), 23)+'01'
+			AND SETLE_MTH = 'PAYM0004'
+		) monthOffAmount,
+		(
+			SELECT
+				ISNULL(SUM(ISSU_AMOUNT), 0) AMOUNT
+			FROM CRTF_REQST
+			WHERE RGST_DT >= CONVERT(VARCHAR(8), DATEADD(MONTH, -1, GETDATE()), 23)+'01'
+			AND RGST_DT &lt; CONVERT(VARCHAR(8), GETDATE(), 23)+'01'
+			AND SETLE_MTH != 'PAYM0004'
+		) monthOnAmount,
+		(
+			SELECT
+				ISNULL(SUM(ISSU_AMOUNT), 0) AMOUNT
+			FROM CRTF_REQST
+		) totalAmount,
+		(
+			SELECT
+				ISNULL(SUM(ISSU_AMOUNT), 0) AMOUNT
+			FROM CRTF_REQST
+			WHERE SETLE_MTH = 'PAYM0004'
+		) totalOffAmount,
+		(
+			SELECT
+				ISNULL(SUM(ISSU_AMOUNT), 0) AMOUNT
+			FROM CRTF_REQST
+			WHERE SETLE_MTH != 'PAYM0004'
+		) totalOnAmount
+	</select>
+	
+	<!-- 결재 cnt - 메인페이지 -->
+	<select id="selectSanctn" parameterType="kr.or.cwma.admin.common.vo.UserVO" resultType="java.util.HashMap">
+		SELECT (
+			SELECT 
+			COUNT(*)
+			FROM SANCTN_MAIN A
+			LEFT JOIN (SELECT * FROM SANCTN_PROGRS WHERE SANCTN_PROGRS_NO IN (SELECT MAX(SANCTN_PROGRS_NO) FROM SANCTN_PROGRS GROUP BY SANCTN_NO)) B ON A.SANCTN_NO = B.SANCTN_NO
+			LEFT JOIN CAREER_DECLARE C
+				on A.DOC_NO = C.CAREER_NO 
+				and A.SANCTN_KND = 'ARCS0001'
+			WHERE B.SANCTN_STTUS IN ('APRV0002', 'APRV0003', 'APRV0006')
+			AND A.SANCTN_ID IN (SELECT #{userId} UNION ALL
+								SELECT RGST_ID FROM SANCTN_AGNCY_ID WHERE DELETE_AT = 'N' AND AGNCY_ID = #{userId}
+								AND CONVERT(VARCHAR(10), GETDATE(), 23) BETWEEN BGNDE AND ENDDE)
+			<if test='ddcAstcCd != "01100"'>
+			AND (SELECT DDC_ASTC_CD FROM EPDBS_LINK.SSO.DBO.V_USER WHERE USER_ID = A.SANCTN_ID) = #{ddcAstcCd}
+			</if>
+			) waitCnt
+			,(
+			SELECT 
+			COUNT(*)
+			FROM SANCTN_MAIN A
+			LEFT JOIN (SELECT * FROM SANCTN_PROGRS WHERE SANCTN_PROGRS_NO IN (SELECT MAX(SANCTN_PROGRS_NO) FROM SANCTN_PROGRS GROUP BY SANCTN_NO)) B ON A.SANCTN_NO = B.SANCTN_NO
+			LEFT JOIN CAREER_DECLARE C
+				on A.DOC_NO = C.CAREER_NO 
+				and A.SANCTN_KND = 'ARCS0001'
+			WHERE B.SANCTN_STTUS IN ('APRV0006', 'APRV0005')
+			<if test='ddcAstcCd != "01100"'>
+			AND (SELECT DDC_ASTC_CD FROM EPDBS_LINK.SSO.DBO.V_USER WHERE USER_ID = A.SANCTN_ID) = #{ddcAstcCd}
+			</if>
+			) compCnt
+			,(
+			SELECT 
+					COUNT(1)
+				FROM (
+					SELECT
+						'ARCS0001' SANCTN_KND, A.CAREER_NO, SPT_SE, SE, RCEPT_NO, 
+						NM, CHRG_BRFFC, IHIDNUM, B.PROGRS_STTUS
+					FROM CAREER_DECLARE A
+		        		LEFT JOIN CAREER_PROGRS B
+							ON B.CAREER_NO = A.CAREER_NO
+							AND B.PROGRS_NO IN (
+								SELECT MAX(PROGRS_NO)
+								FROM CAREER_PROGRS
+								GROUP BY CAREER_NO
+							)
+						UNION ALL
+					SELECT
+						'ARCS0005' SANCTN_KND, A.SN, SPT_SE, 'ARCS0005', RCEPT_NO, 
+						ISNULL(ISNULL(ISNULL(A1.NM, A2.상호), A3.기관명), A4.USER_NAME) NM, CHRG_BRFFC, '', A5.PROGRS_STTUS
+					FROM HOLD_CRTF A
+						LEFT JOIN USER_INFO A1
+							ON A.RGST_ID = A1.USER_ID
+						LEFT JOIN epdbs_link.epdbs.dbo.업체 A2
+							ON A1.BIZNO = A2.사업자등록번호
+							AND A1.SE = 'USSE0002'
+						LEFT JOIN epdbs_link.epdbs.dbo.수요기관_NEW A3
+							ON A1.BIZNO = A3.사업자등록번호
+							AND A1.SE = 'USSE0004'
+						LEFT JOIN epdbs_link.sso.dbo.V_USER A4
+							ON A.RGST_ID = A4.USER_ID
+						LEFT JOIN HOLD_CRTF_PROGRS A5
+							ON A.SN = A5.HOLD_CRTF_SN
+							AND A5.SN IN (
+								SELECT MAX(SN)
+								FROM HOLD_CRTF_PROGRS
+								GROUP BY HOLD_CRTF_SN
+							)
+						UNION ALL
+						/*수수료감면신청 리스트 추가*/
+						SELECT 'ARCS0002' SANCTN_KND, A.REQST_NO CAREER_NO,SPT_SE ,'ARCS0002' SE,(SELECT TOP 1 ISSU_NO FROM CRTF_ISSU WHERE REQST_NO = A.REQST_NO) RCEPT_NO
+							,APPLCNT_NM NM ,CHRG_BRFFC,APPLCNT_IHIDNUM 
+							,CASE WHEN ISNULL(F.PROGRS_STTUS,'')='' THEN 'FEEA0001' ELSE F.PROGRS_STTUS END PROGRS_STTUS
+						FROM CRTF_REQST A LEFT JOIN FEE_CRTF_PROGRS F
+						ON (A.REQST_NO = F.REQST_NO AND F.SN IN (SELECT MAX(SN) FROM FEE_CRTF_PROGRS GROUP BY REQST_NO))
+						WHERE A.FEE_RDCXPT_REQST ='Y'
+						AND F.PROGRS_STTUS = 'FEEA0006'
+						/*---수수료감면----------*/
+				) A
+				LEFT JOIN epdbs_link.epdbs.dbo.공제회 A1
+					ON A1.인덱스 =  A.CHRG_BRFFC
+				LEFT JOIN CMMN_CD A2
+					ON A2.CD_ID = A.SPT_SE
+				LEFT JOIN CMMN_CD A3
+					ON A3.CD_ID = A.SE
+	        		LEFT JOIN CAREER_PROGRS B
+					ON B.CAREER_NO = A.CAREER_NO
+					AND B.PROGRS_NO IN (
+						SELECT MAX(PROGRS_NO)
+						FROM CAREER_PROGRS
+						WHERE PROGRS_STTUS = 'CAPG0002'
+						GROUP BY CAREER_NO
+					)
+				LEFT JOIN CMMN_CD A4
+					ON A4.CD_ID = A.PROGRS_STTUS
+				LEFT JOIN SANCTN_MAIN D
+					ON D.DOC_NO = A.CAREER_NO
+					AND D.SANCTN_KND = A.SANCTN_KND
+				LEFT JOIN SANCTN_PROGRS D1
+					ON D.SANCTN_NO = D1.SANCTN_NO
+					AND D1.SANCTN_PROGRS_NO IN (
+						SELECT MAX(SANCTN_PROGRS_NO) 
+						FROM SANCTN_PROGRS 
+						GROUP BY SANCTN_NO
+					)
+				LEFT JOIN CMMN_CD D11
+					ON D1.SANCTN_STTUS = D11.CD_ID
+				LEFT JOIN SANCTN_MAIN F
+					ON F.DOC_NO = A.CAREER_NO
+					AND F.SANCTN_KND = A.SANCTN_KND
+				LEFT JOIN epdbs_link.sso.dbo.V_USER F0
+					ON F.SANCTN_ID = F0.USER_ID
+				LEFT JOIN SANCTN_PROGRS F1
+					ON F.SANCTN_NO = F1.SANCTN_NO
+					AND F1.SANCTN_PROGRS_NO IN (
+						SELECT MAX(SANCTN_PROGRS_NO) 
+						FROM SANCTN_PROGRS 
+						WHERE SANCTN_STTUS IN ('APRV0002', 'APRV0003') 
+						GROUP BY SANCTN_NO
+					)
+				LEFT JOIN epdbs_link.sso.dbo.V_USER F11
+					ON F1.RGST_ID = F11.USER_ID
+			WHERE 1 = 1
+			AND A.PROGRS_STTUS IN ('CAPG0006', 'CAPG0007','FEEA0006')
+			AND (CASE WHEN ISNULL(D1.SANCTN_STTUS, '') = '' THEN 'APRV0001' ELSE D1.SANCTN_STTUS END) IN ('APRV0001', 'APRV0002' , 'APRV0003', 'APRV0004')
+			<if test='ddcAstcCd != "01100"'>
+			AND A.CHRG_BRFFC = #{ddcAstcCd}
+			</if>
+			) progrsCnt
+	</select>
+	
+	<!-- 경력인정신고 cnt - 메인페이지 -->
+	<select id="selectCareerDeclare1" parameterType="kr.or.cwma.admin.common.vo.UserVO" resultType="java.util.HashMap">
+		SELECT 
+			ISNULL(SUM(waitCnt),0) waitCnt
+			,ISNULL(SUM(progrsCnt),0) progrsCnt
+			,ISNULL(SUM(returnCnt),0) returnCnt
+			,ISNULL(SUM(comptCnt),0) comptCnt
+		FROM (
+			SELECT
+				CASE WHEN B.PROGRS_STTUS IN ('CAPG0001' , 'CAPG0002') THEN 1 else 0 END waitCnt
+				,CASE WHEN B.PROGRS_STTUS = 'CAPG0003' THEN 1 else 0 END progrsCnt
+				,CASE WHEN B.PROGRS_STTUS IN ('CAPG0004' , 'CAPG0005') THEN 1 else 0 END returnCnt
+				,CASE WHEN B.PROGRS_STTUS = 'CAPG0007' THEN 1 else 0 END comptCnt
+			FROM CAREER_DECLARE A
+			LEFT JOIN
+							 (SELECT CAREER_NO,
+									 PROGRS_DE RCEPT_DE,
+									 RGST_ID RCEPT_ID,
+									 PROGRS_STTUS,
+								  PROGRS_RESN,
+								  RPLY_TMLMT
+							 FROM    CAREER_PROGRS
+							 WHERE   PROGRS_NO IN
+									 (SELECT  MAX(PROGRS_NO)
+									 FROM     CAREER_PROGRS
+									 GROUP BY CAREER_NO
+									 )
+							 )
+							 B
+		        				ON       B.CAREER_NO = A.CAREER_NO
+			WHERE A.DELETE_AT = 'N' 
+			AND B.PROGRS_STTUS IN ('CAPG0001', 'CAPG0002', 'CAPG0003', 'CAPG0004', 'CAPG0005', 'CAPG0007')
+			AND A.SE = 'CASE0001'
+			<if test='ddcAstcCd != "01100"'>
+			AND A.CHRG_BRFFC = #{ddcAstcCd}
+			</if>
+		) A
+	</select>
+	
+	<!-- 근로직종확인 cnt - 메인페이지 -->
+	<select id="selectCareerDeclare2" parameterType="kr.or.cwma.admin.common.vo.UserVO" resultType="java.util.HashMap">
+		SELECT 
+			ISNULL(SUM(waitCnt),0) waitCnt
+			,ISNULL(SUM(progrsCnt),0) progrsCnt
+			,ISNULL(SUM(returnCnt),0) returnCnt
+			,ISNULL(SUM(comptCnt),0) comptCnt
+		FROM (
+			SELECT
+				CASE WHEN B.PROGRS_STTUS IN ('CAPG0001' , 'CAPG0002') THEN 1 else 0 END waitCnt
+				,CASE WHEN B.PROGRS_STTUS = 'CAPG0003' THEN 1 else 0 END progrsCnt
+				,CASE WHEN B.PROGRS_STTUS IN ('CAPG0004' , 'CAPG0005') THEN 1 else 0 END returnCnt
+				,CASE WHEN B.PROGRS_STTUS = 'CAPG0007' THEN 1 else 0 END comptCnt
+			FROM CAREER_DECLARE A
+			LEFT JOIN
+							 (SELECT CAREER_NO,
+									 PROGRS_DE RCEPT_DE,
+									 RGST_ID RCEPT_ID,
+									 PROGRS_STTUS,
+								  PROGRS_RESN,
+								  RPLY_TMLMT
+							 FROM    CAREER_PROGRS
+							 WHERE   PROGRS_NO IN
+									 (SELECT  MAX(PROGRS_NO)
+									 FROM     CAREER_PROGRS
+									 GROUP BY CAREER_NO
+									 )
+							 )
+							 B
+		        				ON       B.CAREER_NO = A.CAREER_NO
+			WHERE A.DELETE_AT = 'N' 
+			AND B.PROGRS_STTUS IN ('CAPG0001', 'CAPG0002', 'CAPG0003', 'CAPG0004', 'CAPG0005', 'CAPG0007')
+			AND A.SE = 'CASE0002'
+			<if test='ddcAstcCd != "01100"'>
+			AND A.CHRG_BRFFC = #{ddcAstcCd}
+			</if>
+		) A
+	</select>
+	
+	<!-- 근로직종확인 리스트 - 메인페이지 -->
+	<select id="selectCareerDeclare" parameterType="kr.or.cwma.admin.common.vo.UserVO" resultType="java.util.HashMap">
+		SELECT 
+			(SELECT 명칭 FROM epdbs_link.epdbs.dbo.공제회 WHERE 인덱스 =  A.CHRG_BRFFC) chrgBrffcNm
+			,SUM(onlineCnt) onlineCnt
+			,SUM(offlineCnt) offlineCnt
+			,SUM(mobileCnt) mobileCnt
+		FROM (
+			SELECT
+				CHRG_BRFFC
+				,CASE WHEN SPT_SE = 'SPTS0001' THEN 1 ELSE 0 END onlineCnt
+				,CASE WHEN SPT_SE = 'SPTS0002' THEN 1 ELSE 0 END offlineCnt
+				,CASE WHEN SPT_SE = 'SPTS0003' THEN 1 ELSE 0 END mobileCnt
+			FROM CAREER_DECLARE A
+				LEFT JOIN (
+					SELECT
+		        		A.DOC_NO
+						,A.SANCTN_NO
+						,B.SANCTN_STTUS
+					FROM SANCTN_MAIN A
+						LEFT JOIN SANCTN_PROGRS B 
+							ON SANCTN_PROGRS_NO IN (
+								SELECT MAX(SANCTN_PROGRS_NO)
+								FROM SANCTN_PROGRS
+								WHERE SANCTN_KND = 'ARCS0001'
+								GROUP BY SANCTN_NO
+							)
+							AND A.SANCTN_KND = B.SANCTN_KND
+							AND A.SANCTN_NO = B.SANCTN_NO
+					WHERE A.SANCTN_KND = 'ARCS0001'
+				) D
+					ON D.DOC_NO = A.CAREER_NO
+			WHERE D.SANCTN_STTUS IN ('APRV0005', 'APRV0006')
+		<if test='ddcAstcCd != "01100"'>
+			AND A.CHRG_BRFFC = #{ddcAstcCd}
+		</if>
+		) A
+		GROUP BY CHRG_BRFFC
+	</select>
+	
+	<!-- 기능등급증명서발급현황 리스트 - 메인페이지 -->
+	<select id="selectCareerCrtf" parameterType="kr.or.cwma.admin.common.vo.UserVO" resultType="java.util.HashMap">
+		SELECT 
+			(SELECT 명칭 FROM epdbs_link.epdbs.dbo.공제회 WHERE 인덱스 =  A.CHRG_BRFFC) chrgBrffcNm
+			,SUM(onlineCnt) onlineCnt
+			,SUM(offlineCnt) offlineCnt
+			,SUM(mobileCnt) mobileCnt
+		FROM (
+			SELECT
+				A.CHRG_BRFFC
+				,CASE WHEN SPT_SE = 'SPTS0001' THEN 1 ELSE 0 END onlineCnt
+				,CASE WHEN SPT_SE = 'SPTS0002' THEN 1 ELSE 0 END offlineCnt
+				,CASE WHEN SPT_SE = 'SPTS0003' THEN 1 ELSE 0 END mobileCnt
+			FROM CRTF_ISSU B
+				INNER JOIN CRTF_REQST A
+					ON A.REQST_NO = B.REQST_NO 
+				LEFT JOIN SANCTN_MAIN SM
+		 			ON A.REQST_NO = SM.DOC_NO
+		 			AND SM.SANCTN_KND = 'ARCS0002'
+				LEFT JOIN SANCTN_PROGRS SP
+					ON SM.SANCTN_NO = SP.SANCTN_NO
+					AND SANCTN_PROGRS_NO IN (
+						SELECT MAX(SANCTN_PROGRS_NO)
+						FROM SANCTN_PROGRS
+						GROUP BY SANCTN_NO
+					)
+			WHERE A.DELETE_AT = 'N'
+			AND B.ISSU_DE IS NOT NULL
+			AND B.ISSU_NO IN (SELECT MAX(ISSU_NO) FROM CRTF_ISSU WHERE SANCTN_ID IS NOT NULL GROUP BY REQST_NO)
+			AND SP.SANCTN_STTUS = 'APRV0005'
+			<if test='ddcAstcCd != "01100"'>
+			AND (SELECT DDC_ASTC_CD FROM EPDBS_LINK.SSO.DBO.V_USER WHERE USER_ID = SM.SANCTN_ID) = #{ddcAstcCd}
+			</if>
+		) A
+		GROUP BY CHRG_BRFFC
+	</select>
+	
+	<!-- 결재관리 상세조회(메인페이지) -->
+	<select id="selectSanctnInfo" parameterType="kr.or.cwma.admin.common.vo.UserVO" resultType="java.util.HashMap">
+			
+		SELECT
+			 waitCnt1
+			,waitCnt2
+			,waitCnt3
+			,waitCnt4
+			,compCnt1
+			,compCnt2
+			,compCnt3
+			,compCnt4
+			,compCnt5
+			,progrsCnt1
+			,progrsCnt2
+			,progrsCnt3
+			,progrsCnt4
+		FROM
+		(
+			SELECT 
+				 count(CASE WHEN C.SE = 'CASE0001' THEN 1 END ) waitCnt1
+				,count(CASE WHEN C.SE = 'CASE0002' THEN 1 END ) waitCnt2
+				,count(CASE WHEN A.SANCTN_KND = 'ARCS0005' THEN 1 END ) waitCnt3
+				,count(CASE WHEN A.SANCTN_KND = 'ARCS0002' OR A.SANCTN_KND = 'ARCS0002' THEN 1 END ) waitCnt4
+			FROM SANCTN_MAIN A
+			LEFT JOIN (SELECT * FROM SANCTN_PROGRS WHERE SANCTN_PROGRS_NO IN (SELECT MAX(SANCTN_PROGRS_NO) FROM SANCTN_PROGRS GROUP BY SANCTN_NO)) B ON A.SANCTN_NO = B.SANCTN_NO
+			LEFT JOIN CAREER_DECLARE C
+				on A.DOC_NO = C.CAREER_NO 
+				and A.SANCTN_KND = 'ARCS0001'
+			WHERE B.SANCTN_STTUS IN ('APRV0002', 'APRV0003', 'APRV0006')
+			AND A.SANCTN_ID IN (SELECT #{userId} UNION ALL
+								SELECT RGST_ID FROM SANCTN_AGNCY_ID WHERE DELETE_AT = 'N' AND AGNCY_ID = #{userId}
+								AND CONVERT(VARCHAR(10), GETDATE(), 23) BETWEEN BGNDE AND ENDDE)
+			<if test='ddcAstcCd != "01100"'>
+			AND (SELECT DDC_ASTC_CD FROM EPDBS_LINK.SSO.DBO.V_USER WHERE USER_ID = A.SANCTN_ID) = #{ddcAstcCd}
+			</if>
+		) waitCnt
+		,(
+			SELECT 
+				 count(CASE WHEN C.SE = 'CASE0001' THEN 1 END ) compCnt1
+				,count(CASE WHEN C.SE = 'CASE0002' THEN 1 END ) compCnt2
+				,count(CASE WHEN A.SANCTN_KND = 'ARCS0002' OR A.SANCTN_KND = 'ARCS0002' THEN 1 END ) compCnt3 
+				,count(CASE WHEN A.SANCTN_KND = 'ARCS0003' THEN 1 END ) compCnt4
+				,count(CASE WHEN A.SANCTN_KND = 'ARCS0005' THEN 1 END ) compCnt5
+			FROM SANCTN_MAIN A
+			LEFT JOIN (SELECT * FROM SANCTN_PROGRS WHERE SANCTN_PROGRS_NO IN (SELECT MAX(SANCTN_PROGRS_NO) FROM SANCTN_PROGRS GROUP BY SANCTN_NO)) B ON A.SANCTN_NO = B.SANCTN_NO
+			LEFT JOIN CAREER_DECLARE C
+				on A.DOC_NO = C.CAREER_NO 
+				and A.SANCTN_KND = 'ARCS0001'
+			WHERE B.SANCTN_STTUS IN ('APRV0006', 'APRV0005')
+			<if test='ddcAstcCd != "01100"'>
+			AND (SELECT DDC_ASTC_CD FROM EPDBS_LINK.SSO.DBO.V_USER WHERE USER_ID = A.SANCTN_ID) = #{ddcAstcCd}
+			</if>
+		) compCnt
+		,(
+			SELECT 
+				 count(CASE WHEN SE = 'CASE0001' THEN 1 END ) progrsCnt1
+				,count(CASE WHEN SE = 'CASE0002' THEN 1 END ) progrsCnt2
+				,count(CASE WHEN SE = 'ARCS0005' THEN 1 END ) progrsCnt3
+				,count(CASE WHEN SE = 'ARCS0002' OR SE = 'ARCS0002' THEN 1 END ) progrsCnt4
+			FROM (
+					SELECT
+						'ARCS0001' SANCTN_KND, A.CAREER_NO, SPT_SE, SE, RCEPT_NO, 
+						NM, CHRG_BRFFC, IHIDNUM, B.PROGRS_STTUS
+					FROM CAREER_DECLARE A
+		        		LEFT JOIN CAREER_PROGRS B
+							ON B.CAREER_NO = A.CAREER_NO
+							AND B.PROGRS_NO IN (
+								SELECT MAX(PROGRS_NO)
+								FROM CAREER_PROGRS
+								GROUP BY CAREER_NO
+							)
+						UNION ALL
+					SELECT
+						'ARCS0005' SANCTN_KND, A.SN, SPT_SE, 'ARCS0005', RCEPT_NO, 
+						ISNULL(ISNULL(ISNULL(A1.NM, A2.상호), A3.기관명), A4.USER_NAME) NM, CHRG_BRFFC, '', A5.PROGRS_STTUS
+					FROM HOLD_CRTF A
+						LEFT JOIN USER_INFO A1
+							ON A.RGST_ID = A1.USER_ID
+						LEFT JOIN epdbs_link.epdbs.dbo.업체 A2
+							ON A1.BIZNO = A2.사업자등록번호
+							AND A1.SE = 'USSE0002'
+						LEFT JOIN epdbs_link.epdbs.dbo.수요기관_NEW A3
+							ON A1.BIZNO = A3.사업자등록번호
+							AND A1.SE = 'USSE0004'
+						LEFT JOIN epdbs_link.sso.dbo.V_USER A4
+							ON A.RGST_ID = A4.USER_ID
+						LEFT JOIN HOLD_CRTF_PROGRS A5
+							ON A.SN = A5.HOLD_CRTF_SN
+							AND A5.SN IN (
+								SELECT MAX(SN)
+								FROM HOLD_CRTF_PROGRS
+								GROUP BY HOLD_CRTF_SN
+							)
+						UNION ALL
+						/*수수료감면신청 리스트 추가*/
+						SELECT 'ARCS0002' SANCTN_KND, A.REQST_NO CAREER_NO,SPT_SE ,'ARCS0002' SE,(SELECT TOP 1 ISSU_NO FROM CRTF_ISSU WHERE REQST_NO = A.REQST_NO) RCEPT_NO
+							,APPLCNT_NM NM ,CHRG_BRFFC,APPLCNT_IHIDNUM 
+							,CASE WHEN ISNULL(F.PROGRS_STTUS,'')='' THEN 'FEEA0001' ELSE F.PROGRS_STTUS END PROGRS_STTUS
+						FROM CRTF_REQST A LEFT JOIN FEE_CRTF_PROGRS F
+						ON (A.REQST_NO = F.REQST_NO AND F.SN IN (SELECT MAX(SN) FROM FEE_CRTF_PROGRS GROUP BY REQST_NO))
+						WHERE A.FEE_RDCXPT_REQST ='Y'
+						AND F.PROGRS_STTUS = 'FEEA0006'
+						/*---수수료감면----------*/
+				) A
+				LEFT JOIN epdbs_link.epdbs.dbo.공제회 A1
+					ON A1.인덱스 =  A.CHRG_BRFFC
+				LEFT JOIN CMMN_CD A2
+					ON A2.CD_ID = A.SPT_SE
+				LEFT JOIN CMMN_CD A3
+					ON A3.CD_ID = A.SE
+	        		LEFT JOIN CAREER_PROGRS B
+					ON B.CAREER_NO = A.CAREER_NO
+					AND B.PROGRS_NO IN (
+						SELECT MAX(PROGRS_NO)
+						FROM CAREER_PROGRS
+						WHERE PROGRS_STTUS = 'CAPG0002'
+						GROUP BY CAREER_NO
+					)
+				LEFT JOIN CMMN_CD A4
+					ON A4.CD_ID = A.PROGRS_STTUS
+				LEFT JOIN SANCTN_MAIN D
+					ON D.DOC_NO = A.CAREER_NO
+					AND D.SANCTN_KND = A.SANCTN_KND
+				LEFT JOIN SANCTN_PROGRS D1
+					ON D.SANCTN_NO = D1.SANCTN_NO
+					AND D1.SANCTN_PROGRS_NO IN (
+						SELECT MAX(SANCTN_PROGRS_NO) 
+						FROM SANCTN_PROGRS 
+						GROUP BY SANCTN_NO
+					)
+				LEFT JOIN CMMN_CD D11
+					ON D1.SANCTN_STTUS = D11.CD_ID
+				LEFT JOIN SANCTN_MAIN F
+					ON F.DOC_NO = A.CAREER_NO
+					AND F.SANCTN_KND = A.SANCTN_KND
+				LEFT JOIN epdbs_link.sso.dbo.V_USER F0
+					ON F.SANCTN_ID = F0.USER_ID
+				LEFT JOIN SANCTN_PROGRS F1
+					ON F.SANCTN_NO = F1.SANCTN_NO
+					AND F1.SANCTN_PROGRS_NO IN (
+						SELECT MAX(SANCTN_PROGRS_NO) 
+						FROM SANCTN_PROGRS 
+						WHERE SANCTN_STTUS IN ('APRV0002', 'APRV0003') 
+						GROUP BY SANCTN_NO
+					)
+				LEFT JOIN epdbs_link.sso.dbo.V_USER F11
+					ON F1.RGST_ID = F11.USER_ID
+			WHERE 1 = 1
+			AND A.PROGRS_STTUS IN ('CAPG0006', 'CAPG0007','FEEA0006')
+			AND (CASE WHEN ISNULL(D1.SANCTN_STTUS, '') = '' THEN 'APRV0001' ELSE D1.SANCTN_STTUS END) IN ('APRV0001', 'APRV0002' , 'APRV0003', 'APRV0004')
+			<if test='ddcAstcCd != "01100"'>
+			AND A.CHRG_BRFFC = #{ddcAstcCd}
+			</if>
+		) progrsCnt
+	</select>
+	
+	<!-- 보유증명서발급현황 리스트 - 메인페이지 -->
+	<select id="selectCareerCrtf2" parameterType="kr.or.cwma.admin.common.vo.UserVO" resultType="java.util.HashMap">
+		SELECT A.명칭 chrgBrffcNm, B.*
+		FROM epdbs_link.epdbs.dbo.공제회 A
+			INNER JOIN (
+				SELECT
+					CHRG_BRFFC
+					,COUNT(CASE WHEN SPT_SE = 'SPTS0001' THEN 1 END) onlineCnt
+					,COUNT(CASE WHEN SPT_SE = 'SPTS0002' THEN 1 END) offlineCnt
+					,COUNT(CASE WHEN SPT_SE = 'SPTS0003' THEN 1 END) mobileCnt
+				FROM HOLD_CRTF_ISSU A
+					INNER JOIN HOLD_CRTF A1
+						ON A.SN = A1.SN
+					INNER JOIN FEE A3
+						ON A1.FEE_SN = A3.SN
+					INNER JOIN epdbs_link.sso.dbo.V_USER A4
+						ON A1.CHRG_ID = A4.USER_ID
+					LEFT JOIN CMMN_CD B
+						ON A1.SE = B.CD_ID
+				GROUP BY CHRG_BRFFC
+			) B
+				ON A.인덱스 = B.CHRG_BRFFC
+		ORDER BY A.정렬순서
+	</select>
+	
+	<select id="selectCountVisit" parameterType="kr.or.cwma.admin.common.vo.CommonVO" resultType="int">
+		SELECT COUNT(*)
+		  FROM VISIT_INFO
+		 WHERE 1=1
+		   <if test='prevTime != null and prevTime != ""'>
+		   AND VISIT_DT BETWEEN #{prevTime} AND #{nowTime}
+		   </if>
+	</select>
+	
+</mapper>

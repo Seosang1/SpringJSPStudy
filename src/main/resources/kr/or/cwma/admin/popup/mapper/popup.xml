@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.popup.mapper.PopupMapper">
+	<sql id="listWhere">
+		<if test='popupNm != null and popupNm != ""'>
+			AND POPUP_NM LIKE CONCAT('%', #{popupNm}, '%')
+		</if>
+		<if test='bgnde != null and bgnde != ""'>
+			AND RGST_DT >= #{bgnde}
+		</if>
+		<if test='endde != null and endde != ""'>
+			AND RGST_DT &lt;= CONCAT(#{endde}, ' 23:59:59')
+		</if>
+		<if test='se != null and se != ""'>
+			AND SE = #{se}
+		</if>
+	</sql>
+	
+	<!-- 목록갯수조회 -->
+	<select id="selectPopupListCnt" parameterType="kr.or.cwma.admin.popup.vo.PopupVO" resultType="int">
+		SELECT COUNT(1)
+		FROM POPUP
+		WHERE 1 = 1
+		<include refid="listWhere" />
+	</select>
+
+	<!-- 목록조회 -->
+	<select id="selectPopupList" parameterType="kr.or.cwma.admin.popup.vo.PopupVO" resultType="kr.or.cwma.admin.popup.vo.PopupVO">
+		SELECT *  
+		FROM( 
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY SN DESC) AS ROWNUM, 
+				SN,
+				SE,
+				POPUP_NM,
+				IMAGE_DC,
+				URL,
+				TRGT,
+				BGNDE,
+				ENDDE,
+				(
+					CASE
+						WHEN BGNDE &lt;= CONVERT(VARCHAR, GETDATE(), 23) AND ENDDE >= CONVERT(VARCHAR, GETDATE(), 23) AND USE_YN = 'Y' THEN 'Y'
+						ELSE 'N'
+					END 
+				) DISPLAY_AT,
+				RGST_DT,
+				RGST_ID,
+				B.PARNTS_SN [fileVO.PARNTS_SN],
+				B.FILE_SN [fileVO.FILE_SN],
+				B.PARNTS_SE [fileVO.PARNTS_SE]
+				,USE_YN
+			FROM POPUP A
+				LEFT JOIN ATTCH_FILE_INFO B
+					ON A.SN = B.PARNTS_SN
+					AND B.PARNTS_SE = 'ATCH0005'
+			WHERE 1 = 1
+			<include refid="listWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectPopupView" parameterType="kr.or.cwma.admin.popup.vo.PopupVO" resultType="kr.or.cwma.admin.popup.vo.PopupVO">
+		SELECT 
+			SN,
+			SE,
+			POPUP_NM,
+			IMAGE_DC,
+			URL,
+			TRGT,
+			BGNDE,
+			ENDDE,
+			RGST_DT,
+			RGST_ID,
+			CHG_DT,
+			CHG_ID,
+			USE_YN
+		FROM POPUP
+		WHERE SN = #{sn}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertPopup" parameterType="kr.or.cwma.admin.popup.vo.PopupVO">
+		<selectKey keyProperty="sn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM POPUP
+		</selectKey>
+		INSERT INTO POPUP(
+			SN, POPUP_NM, IMAGE_DC, URL, TRGT, BGNDE, ENDDE, RGST_DT, RGST_ID, SE, USE_YN
+		)VALUES(
+			#{sn}, #{popupNm}, #{imageDc}, #{url}, #{trgt}, #{bgnde}, #{endde}, GETDATE(), #{rgstId}, #{se}, #{useYn}
+		)
+	</insert>
+
+	<!-- 수정 -->
+	<update id="updatePopup" parameterType="kr.or.cwma.admin.popup.vo.PopupVO">
+		UPDATE POPUP
+		SET POPUP_NM = #{popupNm}
+			,IMAGE_DC = #{imageDc}
+			,URL = #{url}
+			,TRGT = #{trgt}
+			,BGNDE = #{bgnde}
+			,ENDDE = #{endde}
+			,CHG_DT = GETDATE()
+			,CHG_ID = #{chgId}
+			,SE = #{se}
+			,USE_YN = #{useYn}
+		WHERE SN = #{sn}
+	</update>
+
+	<!-- 삭제 -->
+	<delete id="deletePopup" parameterType="kr.or.cwma.admin.popup.vo.PopupVO">
+		DELETE FROM POPUP
+		WHERE SN = #{sn}
+	</delete>
+
+</mapper>

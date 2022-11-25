@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.skill.userCntrctRelate.mapper.UserCntrctRelateMapper">
+	
+		
+	<!-- 마이페이지 대리인 리스트 -->
+	<select id="selectUserCntrctRelateList" parameterType="kr.or.cwma.admin.userInfo.vo.UserCntrctRelateVO" resultType="kr.or.cwma.admin.userInfo.vo.UserCntrctRelateVO">
+		SELECT 
+				  USER_ID						userID
+				, ISNULL(NM,'')					nm
+				, ISNULL(MOBLPHON_NO,'')		moblphonNo
+				, ISNULL(EMAIL,'')				email	
+				, ISNULL(DDC_JOIN_NO,'')		ddcJoinNo
+				, ISNULL(AUTHOR_CD,'')			authorCd
+				, ISNULL(SE,'')					se
+		FROM (
+			SELECT 
+				  A.USER_ID
+				, A.NM
+				, A.MOBLPHON_NO
+				, A.EMAIL
+				, B.DDC_JOIN_NO
+				, B.AUTHOR_CD
+				, B.SE
+			FROM USER_INFO A
+			LEFT OUTER JOIN USER_CNTRCT_RELATE B 
+				ON A.USER_ID = B.USER_ID 
+				AND B.DDC_JOIN_NO = #{ddcJoinNo}
+			<if test='se != null and se != "" and se == "AGSE0001"'>
+				-- 퇴직공제
+				LEFT OUTER JOIN EPDBS_LINK.EPDBS.DBO.공제계약 C 
+				ON C.공제계약번호 = B.DDC_JOIN_NO
+			</if>
+			<if test='se != null and se != "" and se != "AGSE0001"'>
+				-- 고용보험
+				LEFT OUTER JOIN CNTC_KCOMWEL_WORK_CNSTWK C 
+				ON C.BPLC_NO = B.DDC_JOIN_NO
+			</if>
+			WHERE 1=1
+				AND A.SE = 'USSE0003'
+				AND A.BIZNO = #{bizno}
+		) T	
+	</select>
+	
+	<!-- 마이페이지 대리인 권한 존재여부 -->
+	<select id="isUserCntrctRelate" parameterType="kr.or.cwma.admin.userInfo.vo.UserCntrctRelateVO" resultType="int">
+		SELECT 
+			COUNT(*) CNT
+		FROM USER_CNTRCT_RELATE
+		WHERE 1=1
+			AND USER_ID = #{userId}
+			AND DDC_JOIN_NO = #{ddcJoinNo}
+			AND SE = #{se}
+	</select>
+	
+	<!-- 마이페이지 대리인 권한 조회 -->
+	<select id="selectUserCntrctRelate" parameterType="kr.or.cwma.admin.userInfo.vo.UserCntrctRelateVO" resultType="kr.or.cwma.admin.userInfo.vo.UserCntrctRelateVO">
+		SELECT
+			 USER_ID		userID
+			,DDC_JOIN_NO	ddcJoinNo
+			,AUTHOR_CD		authorCd
+			,SE				se
+		FROM USER_CNTRCT_RELATE
+		WHERE 1=1
+			AND USER_ID = #{userId}
+			AND DDC_JOIN_NO = #{ddcJoinNo}
+			AND SE = #{se}
+			AND AUTHOR_CD = #{authorCd}
+	</select>
+	
+	<!-- 마이페이지 대리인 권한 등록 -->
+	<insert id="insertUserCntrctRelate" parameterType="kr.or.cwma.admin.userInfo.vo.UserCntrctRelateVO">
+		INSERT INTO USER_CNTRCT_RELATE(
+			  USER_ID
+			, DDC_JOIN_NO
+			, AUTHOR_CD
+			, SE
+		)VALUES (
+			  #{userId}
+			, #{ddcJoinNo}
+			, #{authorCd}
+			, #{se}
+		)
+	</insert>
+	
+	<!-- 마이페이지 대리인 권한 수정 -->
+	<update id="updateUserCntrctRelate" parameterType="kr.or.cwma.admin.userInfo.vo.UserCntrctRelateVO">
+		UPDATE USER_CNTRCT_RELATE
+		SET AUTHOR_CD = #{authorCd}
+		WHERE 1=1
+			AND USER_ID = #{userId}
+			AND DDC_JOIN_NO = #{ddcJoinNo}
+			AND SE = #{se}<!-- TODO 추가 -->
+	</update>
+	
+</mapper>

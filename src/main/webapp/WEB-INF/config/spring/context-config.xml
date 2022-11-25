@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xsi:schemaLocation="http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd
+		http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.3.xsd
+		">
+
+	<!-- 마이바티스 매퍼 검색 -->
+	<mybatis:scan base-package="kr.or.cwma.**.mapper" />
+
+	<!-- 프로퍼티 -->
+	<util:properties id="prop" location="/WEB-INF/config/property/prop.#{systemProperties['server'] != null ?systemProperties['server'] : 'local'}.properties" />
+	<util:properties id="dbProp" location="/WEB-INF/config/property/db.#{systemProperties['server'] != null ?systemProperties['server'] : 'dev'}.properties" />
+	<util:properties id="oauth" location="/WEB-INF/config/property/oauth.properties" />
+	
+	<!-- 디비 접속정보 -->
+	<bean id="dataSourceSpied" class="org.apache.commons.dbcp2.BasicDataSource" >
+        <property name="driverClassName" value="#{dbProp['db.driverClassName']}" />
+        <property name="url" value="#{dbProp['db.url']}" />
+        <property name="username" value="#{dbProp['db.username']}" />
+        <property name="password" value="#{dbProp['db.password']}" />
+        <property name="maxTotal" value="#{dbProp['db.maxTotal']}" />
+        <property name="maxIdle" value="#{dbProp['db.maxIdle']}" />
+        <property name="maxWaitMillis" value="#{dbProp['db.maxWaitMillis']}" />
+		<property name="poolPreparedStatements" value="#{dbProp['db.poolPreparedStatements']}"/>
+		<property name="maxOpenPreparedStatements" value="#{dbProp['db.maxOpenPreparedStatements']}"/>
+		<property name="removeAbandonedOnBorrow" value="true"/>
+		<property name="removeAbandonedOnMaintenance" value="true"/>
+		<property name="removeAbandonedTimeout" value="15"/>
+		<property name="logAbandoned" value="true"/>
+    </bean>
+
+	<!-- sql 로그 -->
+	<bean id="dataSource" class="net.sf.log4jdbc.Log4jdbcProxyDataSource">
+		<constructor-arg ref="dataSourceSpied" />
+		<property name="logFormatter">
+			<bean class="net.sf.log4jdbc.tools.Log4JdbcCustomFormatter">
+				<property name="loggingType" value="MULTI_LINE" />
+				<property name="sqlPrefix" value="SQL:::" />
+			</bean>
+		</property>
+	</bean>
+
+	<!-- 마이바티스 설정 -->
+	<bean id="sqlMapClient" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="mapperLocations" value="classpath:kr/or/cwma/**/*.xml" />
+		<property name="configLocation" value="/WEB-INF/config/mybatis-config.xml" />
+	</bean>
+	<bean id="sqlMapClientTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg ref="sqlMapClient" />
+	</bean>
+
+	<!-- 트랜젝션 설정 -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	       <property name="dataSource" ref="dataSource"/>
+	</bean>
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+	    <tx:attributes>
+	        <tx:method name="insert*" propagation="REQUIRED" rollback-for="Exception" />
+	        <tx:method name="update*" propagation="REQUIRED" rollback-for="Exception" />
+	        <tx:method name="delete*" propagation="REQUIRED" rollback-for="Exception" />
+	    </tx:attributes>
+	</tx:advice>
+	
+	<!-- multipart resolver -->
+	<bean id="filterMultipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize" value="204857600" />
+		<property name="maxInMemorySize" value="10485760" />
+	</bean>
+	
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize" value="204857600" />
+		<property name="maxInMemorySize" value="10485760" />	
+	</bean>
+
+</beans>

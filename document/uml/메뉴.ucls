@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<class-diagram version="1.2.4" icons="true" automaticImage="PNG" always-add-relationships="false" generalizations="true" 
+  realizations="true" associations="true" dependencies="false" nesting-relationships="true" router="FAN">  
+  <class id="1" language="java" name="kr.or.cwma.admin.menuInfo.controller.MenuInfoController" 
+    project="skill_level_evaluation" 
+    file="/skill_level_evaluation/src/main/java/kr/or/cwma/admin/menuInfo/controller/MenuInfoController.java" 
+    binary="false" corner="BOTTOM_RIGHT">    
+    <position height="225" width="475" x="359" y="37"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true" static="true"/>      
+      <operations public="true" package="true" protected="true" private="true" static="true"/>    
+    </display>  
+  </class>  
+  <class id="2" language="java" name="kr.or.cwma.admin.menuInfo.service.impl.MenuInfoServiceImpl" 
+    project="skill_level_evaluation" 
+    file="/skill_level_evaluation/src/main/java/kr/or/cwma/admin/menuInfo/service/impl/MenuInfoServiceImpl.java" 
+    binary="false" corner="BOTTOM_RIGHT">    
+    <position height="189" width="276" x="43" y="37"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true" static="true"/>      
+      <operations public="true" package="true" protected="true" private="true" static="true"/>    
+    </display>  
+  </class>  
+  <interface id="3" language="java" name="kr.or.cwma.admin.menuInfo.service.MenuInfoService" 
+    project="skill_level_evaluation" 
+    file="/skill_level_evaluation/src/main/java/kr/or/cwma/admin/menuInfo/service/MenuInfoService.java" binary="false" 
+    corner="BOTTOM_RIGHT">    
+    <position height="171" width="276" x="359" y="302"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true" static="true"/>      
+      <operations public="true" package="true" protected="true" private="true" static="true"/>    
+    </display>  
+  </interface>  
+  <interface id="4" language="java" name="kr.or.cwma.admin.menuInfo.mapper.MenuInfoMapper" 
+    project="skill_level_evaluation" 
+    file="/skill_level_evaluation/src/main/java/kr/or/cwma/admin/menuInfo/mapper/MenuInfoMapper.java" binary="false" 
+    corner="BOTTOM_RIGHT">    
+    <position height="171" width="276" x="43" y="302"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+      sort-features="false" accessors="true" visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true" static="true"/>      
+      <operations public="true" package="true" protected="true" private="true" static="true"/>    
+    </display>  
+  </interface>  
+  <realization id="5">    
+    <end type="SOURCE" refId="2"/>    
+    <end type="TARGET" refId="3"/>  
+  </realization>  
+  <association id="6">    
+    <end type="SOURCE" refId="2" navigable="false">      
+      <attribute id="7" name="menuInfoMapper"/>      
+      <multiplicity id="8" minimum="0" maximum="1"/>    
+    </end>    
+    <end type="TARGET" refId="4" navigable="true"/>    
+    <display labels="true" multiplicity="true"/>  
+  </association>  
+  <association id="9">    
+    <end type="SOURCE" refId="1" navigable="false">      
+      <attribute id="10" name="menuInfoService"/>      
+      <multiplicity id="11" minimum="0" maximum="1"/>    
+    </end>    
+    <end type="TARGET" refId="3" navigable="true"/>    
+    <display labels="true" multiplicity="true"/>  
+  </association>  
+  <classifier-display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
+    sort-features="false" accessors="true" visibility="true">    
+    <attributes public="true" package="true" protected="true" private="true" static="true"/>    
+    <operations public="true" package="true" protected="true" private="true" static="true"/>  
+  </classifier-display>  
+  <association-display labels="true" multiplicity="true"/>
+</class-diagram>

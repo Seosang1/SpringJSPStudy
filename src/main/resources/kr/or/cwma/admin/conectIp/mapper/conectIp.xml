@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.conectIp.mapper.ConectIpMapper">
+	<!-- 목록갯수조회 -->
+	<select id="selectConectIpListCnt" parameterType="kr.or.cwma.admin.conectIp.vo.ConectIpVO" resultType="int">
+		SELECT COUNT(1)
+		FROM CONECT_IP
+		<if test='ip != null and ip != ""'>
+			WHERE IP = #{ip}
+		</if>
+	</select>
+
+	<!-- 목록조회 -->
+	<select id="selectConectIpList" parameterType="kr.or.cwma.admin.conectIp.vo.ConectIpVO" resultType="kr.or.cwma.admin.conectIp.vo.ConectIpVO">
+		SELECT *  
+		FROM( 
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY IP DESC) AS ROWNUM, 
+				IP,
+				SE
+			FROM CONECT_IP
+		<if test='ip != null and ip != ""'>
+			WHERE IP = #{ip}
+		</if>
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertConectIp" parameterType="kr.or.cwma.admin.conectIp.vo.ConectIpVO">
+		INSERT INTO CONECT_IP(
+			IP, SE
+		)VALUES(
+			#{ip}, #{se}
+		)
+	</insert>
+
+	<!-- 삭제 -->
+	<delete id="deleteConectIp" parameterType="kr.or.cwma.admin.conectIp.vo.ConectIpVO">
+		DELETE FROM CONECT_IP
+		WHERE IP = #{ip}
+	</delete>
+
+</mapper>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.smsSendHist.mapper.SmsSendHistMapper">
+
+	<sql id="listWhere">
+		<if test='cn != null and cn != ""'>
+			AND CN = #{cn}
+		</if>
+		<if test='se != null and se != ""'>
+			AND SE = #{se}
+		</if>
+		<if test='sttus != null and sttus != ""'>
+			AND STTUS = #{sttus}
+		</if>
+		<if test='bgnDt != null and bgnDt != ""'>
+			AND RGST_DT >= #{bgnDt}
+		</if>
+		<if test='endDt != null and endDt != ""'>
+			AND RGST_DT &lt;= CONCAT(#{endDt}, ' 23:59:59')
+		</if>
+		<if test='moblphonNo != null and moblphonNo != ""'>
+			AND MOBLPHON_NO LIKE CONCAT('%', #{moblphonNo}, '%')
+		</if>
+	</sql>
+
+	<!-- 목록갯수조회 -->
+	<select id="selectSmsSendHistListCnt" parameterType="kr.or.cwma.admin.smsSendHist.vo.SmsSendHistVO" resultType="int">
+		SELECT COUNT(1)
+		FROM SMS_SEND_HIST
+		WHERE 1 = 1
+		<include refid="listWhere" /> 
+	</select>
+
+	<!-- 목록조회 -->
+	<select id="selectSmsSendHistList" parameterType="kr.or.cwma.admin.smsSendHist.vo.SmsSendHistVO" resultType="kr.or.cwma.admin.smsSendHist.vo.SmsSendHistVO">
+		SELECT *  
+		FROM( 
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY SN DESC) AS ROWNUM, 
+				SN,
+				CN,
+				SE,
+				B.CD_NM SE_NM,
+				MOBLPHON_NO,
+				STTUS,
+				C.CD_NM STTUS_NM,
+				RGST_DT
+			FROM SMS_SEND_HIST A
+				LEFT JOIN CMMN_CD B
+					ON A.SE = B.CD_ID
+				LEFT JOIN CMMN_CD C
+					ON A.STTUS = C.CD_ID
+			WHERE 1 = 1
+			<include refid="listWhere" /> 
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectSmsSendHistView" parameterType="kr.or.cwma.admin.smsSendHist.vo.SmsSendHistVO" resultType="kr.or.cwma.admin.smsSendHist.vo.SmsSendHistVO">
+		SELECT 
+			SN,
+			CN,
+			SE,
+			MOBLPHON_NO,
+			STTUS,
+			RGST_DT
+		FROM SMS_SEND_HIST
+		WHERE SN = #{sn}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertSmsSendHist" parameterType="kr.or.cwma.admin.smsSendHist.vo.SmsSendHistVO">
+		<selectKey keyProperty="sn" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM SMS_SEND_HIST
+		</selectKey>
+		INSERT INTO SMS_SEND_HIST(
+			SN, CN, SE, MOBLPHON_NO, STTUS, RGST_DT
+		)VALUES(
+			#{sn}, #{cn}, #{se}, #{moblphonNo}, #{sttus}, GETDATE()
+		)
+	</insert>
+	
+	
+	<!-- 답변 메세지 -->
+	<insert id="executeSms" parameterType="kr.or.cwma.admin.smsSendHist.vo.SmsSendHistVO">
+		EXEC s문자발송 #{moblphonNo}, '16661122', #{cn}, #{cn}, null
+	</insert>
+
+</mapper>

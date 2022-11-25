@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xmlns:task="http://www.springframework.org/schema/task"
+    xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
+        http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.1.xsd">
+
+	<!-- 자동 --> 
+ 	<mvc:annotation-driven />
+ 	<task:annotation-driven/>
+    <context:annotation-config />
+    
+ 	<!-- 컨트롤러 검색 -->
+ 	<!-- 운영에서는 보안(관리자등) 접속은 제외 시켰으나, 중독에서는 모두 포함 처리 -->
+	<!--context:component-scan base-package="kr.or.cwma">
+		<context:include-filter type="annotation" expression="org.springframework.stereotype.Service"/>
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	</context:component-scan>
+	<context:component-scan base-package="kr.or.cwma.skill, kr.or.cwma.common">
+		<context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	</context:component-scan-->
+    <context:component-scan base-package="kr.or.cwma">
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+    
+    <!-- 인터셉터 -->
+    <mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/skill/**" />
+			<bean class="kr.or.cwma.common.interceptor.CsrfInterceptor" />
+		</mvc:interceptor>
+		<mvc:interceptor>
+			<mvc:mapping path="/skill/mypage/**"/>
+			<mvc:mapping path="/skill/customer/qna*.do"/>
+			<mvc:mapping path="/skill/customer/survey*.do"/>
+		    <bean class="kr.or.cwma.common.interceptor.UserInterceptor" />
+		</mvc:interceptor>
+		<mvc:interceptor>
+			<mvc:mapping path="/admin/**"/>
+			<mvc:exclude-mapping path="/admin/login.do"/>
+			<mvc:exclude-mapping path="/admin/logout.do"/>
+		    <bean class="kr.or.cwma.common.interceptor.AdminInterceptor" />
+		</mvc:interceptor>
+    </mvc:interceptors>
+
+    <!-- view resolver -->
+    <bean class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+        <property name="viewResolvers">
+            <list>
+                <bean class="org.springframework.web.servlet.view.BeanNameViewResolver"/>
+                <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+                    <property name="prefix" value="/WEB-INF/jsp/" />
+                    <property name="suffix" value=".jsp" />
+                    <property name="order"  value="1"/>
+                </bean>
+            </list>
+        </property>
+    </bean>
+	
+	<!-- 트랜젝션 AOP -->
+	<aop:config>
+		<aop:pointcut id="requiredTx" expression="execution(* kr.or.cwma..impl.*Impl.*(..))"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="requiredTx" />
+	</aop:config>
+	
+</beans>

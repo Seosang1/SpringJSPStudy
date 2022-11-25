@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.bbs.mapper.BbsMapper">
+
+	<resultMap type="kr.or.cwma.admin.bbs.vo.BbsVO" id="listMap" autoMapping="true">
+		<id property="sn" column="SN"/>
+		<association property="userInfoVO" javaType="kr.or.cwma.admin.userInfo.vo.UserInfoVO" autoMapping="true" columnPrefix="userInfoVO.">
+			<id property="userId" column="USER_ID" />
+		</association>
+		<collection property="fileVO" ofType="kr.or.cwma.common.vo.AttchFileInfoVO" autoMapping="true" columnPrefix="fileVO.">
+			<id property="fileSn" column="FILE_SN" />
+		</collection>
+	</resultMap>
+
+	<sql id="listWhere">
+		<if test='se != null and se != ""'>
+			AND A.SE = #{se}
+		</if>
+		<if test='searchWord != null and searchWord != ""'>
+			<if test='searchKey == "sj"'>
+				AND A.SJ LIKE CONCAT('%',  #{searchWord}, '%')
+			</if>
+			<if test='searchKey == "cn"'>
+				AND A.CN LIKE CONCAT('%',  #{searchWord}, '%')
+			</if>
+			<if test='searchKey == ""'>
+				AND (
+					A.SJ LIKE CONCAT('%',  #{searchWord}, '%')
+					OR A.CN LIKE CONCAT('%',  #{searchWord}, '%')
+				)
+			</if>
+		</if>
+		<if test='noticeAt != null'>
+			AND A.NOTICE_AT = #{noticeAt}
+		</if>
+		<if test='displayAt != null and displayAt != ""'>
+			AND (
+				CASE
+					WHEN DISPLAY_AT = 'Y' THEN 'Y'
+					WHEN DISPLAY_AT = 'N' AND CONVERT(VARCHAR(10), GETDATE(), 120) BETWEEN NTCE_BGNDE AND NTCE_ENDDE THEN 'Y'
+					ELSE 'N' 
+				END
+			) = #{displayAt}
+		</if>
+		<if test='answerAt != null and answerAt != ""'>
+			<if test='answerAt == "Y"'>
+				AND ANSWER IS NOT NULL
+				AND ANSWER &lt;&gt; ''
+			</if>
+			<if test='answerAt == "N"'>
+				AND (
+					ANSWER IS NULL
+					OR ANSWER = ''
+				)
+			</if>
+		</if>
+		<if test='bgnDt != null and bgnDt != ""'>
+			AND A.RGST_DT >= #{bgnDt}
+		</if>
+		<if test='endDt != null and endDt != ""'>
+			AND A.RGST_DT &lt;= CONCAT(#{endDt}, ' 23:59:59')
+		</if>
+		<if test='rgstId != null and rgstId != ""'>
+			AND A.RGST_ID = #{rgstId}
+		</if>
+		<if test='admin == true'>
+			<if test='cl != null and cl != ""'>
+				AND A.CL = #{cl}
+			</if>			
+		</if>
+		<if test='admin != true'>
+			<if test='cl != null and cl != ""'>
+				AND A.CL = #{cl}
+			</if>
+		</if>
+	</sql>
+
+	<!-- 목록갯수조회 -->
+	<select id="selectBbsListCnt" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO" resultType="int">
+		SELECT COUNT(1)
+		FROM BBS A
+		WHERE 1 = 1
+		<include refid="listWhere" />
+	</select>
+
+	<!-- 목록조회 -->
+	<select id="selectBbsList" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO" resultMap="listMap">
+		SELECT *  
+		FROM( 
+			SELECT 
+				DENSE_RANK() OVER(ORDER BY ISNULL(NOTICE_AT, 'N') DESC, SN DESC) AS ROWNUM, 
+				SN,
+				A.SE,
+				CL,
+				SJ,
+				CN,
+				NOTICE_AT,
+				DISPLAY_AT,
+				(
+					CASE
+						WHEN DISPLAY_AT = 'Y' THEN 'Y'
+						WHEN DISPLAY_AT = 'N' AND CONVERT(VARCHAR(10), GETDATE(), 120) BETWEEN NTCE_BGNDE AND NTCE_ENDDE THEN 'Y'
+						ELSE 'N' 
+					END
+				) DISPLAY_STTUS,
+				A.RGST_DT,
+				A.RGST_ID,
+				A.CALL_NUMBER,
+				A.EMAIL,
+				A.RGST_NM,
+				ANSWER_ID,
+				NTCE_BGNDE,
+				NTCE_ENDDE,
+				RDCNT,
+				DWLD_CO,
+				SNDNG_AT,
+				B.CD_NM CL_NM,
+				C.FILE_SN [fileVO.FILE_SN],
+				C.ORGINL_FILE_NM [fileVO.ORGINL_FILE_NM],
+				C.PARNTS_SN [fileVO.PARNTS_SN],
+				C.PARNTS_SE [fileVO.PARNTS_SE],
+				C.EXTSN [fileVO.EXTSN],
+				D.USER_ID [userInfoVO.USER_ID],
+				ISNULL(D.NM, A.NM) [userInfoVO.NM],
+				ISNULL(D.MOBLPHON_NO, A.MBTLNUM) [userInfoVO.MOBLPHON_NO],
+				D.SE [userInfoVO.SE],
+				D1.CD_NM [userInfoVO.SE_NM],
+				E.USER_NAME ANSWER_NM
+			FROM BBS A
+				LEFT JOIN CMMN_CD B
+					ON A.CL = B.CD_ID AND B.G_PARNTS_CD_ID = 'CODE0001'
+				LEFT JOIN ATTCH_FILE_INFO C
+					ON A.SN = C.PARNTS_SN
+					AND C.PARNTS_SE = 'ATCH0001'
+				LEFT JOIN USER_INFO D
+					ON A.RGST_ID = D.USER_ID
+				LEFT JOIN CMMN_CD D1 
+					ON D.SE = D1.CD_ID AND D1.G_PARNTS_CD_ID = 'CODE0001'
+				LEFT JOIN ADMIN_INFO E
+					ON A.ANSWER_ID = E.USER_ID
+			WHERE 1 = 1 
+			<include refid="listWhere" />
+		) A
+		WHERE ROWNUM BETWEEN #{sNum} AND #{eNum} 
+	</select>
+
+	<!-- 상세조회 -->
+	<select id="selectBbsView" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO" resultType="kr.or.cwma.admin.bbs.vo.BbsVO">
+		SELECT 
+			SN,
+			A.SE,
+			CL,
+			SJ,
+			CN,
+			NOTICE_AT,
+			ANSWER,
+			DISPLAY_AT,
+			(
+				CASE
+					WHEN DISPLAY_AT = 'Y' THEN 'Y'
+					WHEN DISPLAY_AT = 'N' AND CONVERT(VARCHAR(10), GETDATE(), 120) BETWEEN NTCE_BGNDE AND NTCE_ENDDE THEN 'Y'
+					ELSE 'N' 
+				END
+			) DISPLAY_STTUS,
+			A.RGST_DT,
+			A.RGST_ID,
+			A.CHG_DT,
+			A.CALL_NUMBER,
+			A.EMAIL,
+			A.RGST_NM,
+			ANSWER_ID,
+			ANSWER_DT,
+			NTCE_BGNDE,
+			NTCE_ENDDE,
+			RDCNT,
+			DWLD_CO,
+			SNDNG_AT,
+			B.CD_NM CL_NM,
+			A.SMS_RECPTN_AGRE_AT,
+			C.USER_ID [userVO.USER_ID],
+			C.USER_NAME [userVO.USER_NAME],
+			D.USER_ID [userInfoVO.USER_ID],
+			ISNULL(D.NM, A.NM) [userInfoVO.NM],
+			ISNULL(D.MOBLPHON_NO, A.MBTLNUM) [userInfoVO.MOBLPHON_NO],
+			D.SE [userInfoVO.SE],
+			D1.CD_NM [userInfoVO.SE_NM],
+			D.EMAIL [userInfoVO.EMAIL],
+			D.MOBLPHON_NO [userInfoVO.MOBLPHON_NO],
+			E.USER_NAME ANSWER_NM
+		FROM BBS A
+			LEFT JOIN CMMN_CD B
+				ON A.CL = B.CD_ID AND B.G_PARNTS_CD_ID = 'CODE0001'
+			LEFT JOIN ADMIN_INFO C
+				ON A.RGST_ID = C.USER_ID
+			LEFT JOIN USER_INFO D
+				ON A.RGST_ID = D.USER_ID
+			LEFT JOIN CMMN_CD D1 
+				ON D.SE = D1.CD_ID AND D1.G_PARNTS_CD_ID = 'CODE0001'
+			LEFT JOIN ADMIN_INFO E 
+				ON A.ANSWER_ID = E.USER_ID
+		WHERE SN = #{sn}
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertBbs" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO">
+		<selectKey keyProperty="sn" resultType="int" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 SN FROM BBS
+		</selectKey>
+		INSERT INTO BBS(
+			SN, SE, CL, SJ, CN, NOTICE_AT, ANSWER, DISPLAY_AT, NTCE_BGNDE, NTCE_ENDDE, RGST_DT, RGST_ID, 
+			RDCNT, DWLD_CO, SNDNG_AT, SMS_RECPTN_AGRE_AT, NM, MBTLNUM, CALL_NUMBER, EMAIL, RGST_NM
+		)VALUES(
+			#{sn}, #{se}, #{cl}, #{sj}, #{cn}, #{noticeAt}, #{answer}, #{displayAt}, #{ntceBgnde}, #{ntceEndde}, GETDATE(), #{rgstId},
+			0, 0, 'N', #{smsRecptnAgreAt}, #{nm}, #{mbtlnum}, #{callNumber}, #{email}, #{rgstNm}
+		)
+	</insert>
+
+	<!-- 수정 -->
+	<update id="updateBbs" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO">
+		UPDATE BBS
+		SET SJ = #{sj}
+			,CN = #{cn}
+			,CL = #{cl}
+			,NOTICE_AT = #{noticeAt}
+			,DISPLAY_AT = #{displayAt}
+			,NTCE_BGNDE = #{ntceBgnde}
+			,NTCE_ENDDE = #{ntceEndde}
+			,CHG_DT = GETDATE()
+			,CHG_ID = #{chgId}
+		WHERE SN = #{sn}
+		<if test='rgstId != null and rgstId != ""'>
+			AND RGST_ID = #{rgstId}
+		</if>
+	</update>
+
+	<!-- 조회수 증가 -->
+	<update id="updateBbsRdcnt" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO">
+		UPDATE BBS
+		SET RDCNT = RDCNT+1
+		WHERE SN = #{sn}
+	</update>
+	
+	<!-- 다운로드수 증가 -->
+	<update id="updateBbsDwldCo" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO">
+		UPDATE BBS
+		SET DWLD_CO = DWLD_CO+1
+		WHERE SN = #{sn}
+	</update>
+
+	<!-- 발송여부 수정 -->
+	<update id="updateBbsSndngAt" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO">
+		UPDATE BBS
+		SET SNDNG_AT = #{sndngAt}
+		WHERE SN = #{sn}
+	</update>
+
+	<!-- 답변 -->
+	<update id="updateBbsAnswer" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO">
+		UPDATE BBS
+		SET ANSWER = #{answer},
+			ANSWER_ID = #{answerId},
+			ANSWER_DT = GETDATE()
+		WHERE SN = #{sn}
+		AND (
+			ANSWER_ID = #{answerId}
+			OR ANSWER_ID IS NULL
+		)
+	</update>
+
+	<!-- 삭제 -->
+	<delete id="deleteBbs" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO">
+		DELETE FROM BBS
+		WHERE SN IN (
+		<foreach collection="seqList" separator="," item="seq">
+			#{seq}
+		</foreach>
+		)
+		<if test='rgstId != null and rgstId != ""'>
+			AND RGST_ID = #{rgstId}
+		</if>
+	</delete>
+	
+	<!-- 이전글,다음글 조회 -->
+	<select id="selectBbsPrevNextList" parameterType="kr.or.cwma.admin.bbs.vo.BbsVO" resultType="kr.or.cwma.admin.bbs.vo.BbsVO">
+		WITH TMP AS (
+			SELECT ROWNUM
+			FROM( 
+				SELECT 
+					ROW_NUMBER() OVER(ORDER BY NOTICE_AT DESC, SN DESC) AS ROWNUM, SN
+				FROM BBS A
+				WHERE 1 = 1
+				<include refid="listWhere" /> 
+			) A
+			WHERE A.SN = #{sn}
+		)
+		SELECT 
+			A.*, (CASE WHEN A.ROWNUM > B.ROWNUM THEN 'D' ELSE 'U' END) SE
+		FROM (
+			SELECT 
+				ROW_NUMBER() OVER(ORDER BY NOTICE_AT DESC, SN DESC) AS ROWNUM, SN, SJ, RGST_DT
+			FROM BBS A
+			WHERE 1 = 1
+			<include refid="listWhere" />
+		) A, TMP B
+		WHERE A.ROWNUM = B.ROWNUM+1
+		OR A.ROWNUM = B.ROWNUM-1
+	</select>
+
+</mapper>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.cwma.admin.jssfcInfo.mapper.JssfcInfoHistManageMapper">
+
+	<!-- 목록조회 -->
+	<select id="selectJssfcInfoHistManageList" parameterType="kr.or.cwma.admin.jssfcInfo.vo.JssfcInfoHistManageVO" resultType="kr.or.cwma.admin.jssfcInfo.vo.JssfcInfoHistManageVO">
+		SELECT 
+			SN,
+			APPLC_DE,
+			RGST_ID,
+			B.USER_NAME RGST_NM,
+			A.RGST_DT
+		FROM JSSFC_INFO_HIST_MANAGE A
+			LEFT JOIN epdbs_link.sso.dbo.V_USER B
+				ON A.RGST_ID = B.USER_ID
+		ORDER BY SN DESC
+	</select>
+
+	<!-- 등록 -->
+	<insert id="insertJssfcInfoHistManage" parameterType="kr.or.cwma.admin.jssfcInfo.vo.JssfcInfoHistManageVO">
+		<selectKey keyProperty="sn" resultType="long" order="BEFORE">
+			SELECT ISNULL(MAX(SN), 0) +1 sn FROM JSSFC_INFO_HIST_MANAGE
+		</selectKey>
+		INSERT INTO JSSFC_INFO_HIST_MANAGE(
+			SN, APPLC_DE, RGST_ID, RGST_DT
+		)VALUES(
+			#{sn}, #{applcDe}, #{rgstId}, GETDATE()
+		)
+	</insert>
+
+</mapper>
